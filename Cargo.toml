@@ -1,0 +1,15 @@
+[package]
+name = "gpio-cdev"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bitflags = "2"
+libc = { version = "0.2", default-features = false }
+nix = { version = "0.28", features = ["ioctl"] }
+
+
+[features]
+default = ["v1", "v2"]
+v1 = []
+v2 = []
