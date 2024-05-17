@@ -357,11 +357,8 @@ bitflags! {
         const GPIOHANDLE_REQUEST_ACTIVE_LOW     = 1 << 2;
         const GPIOHANDLE_REQUEST_OPEN_DRAIN     = 1 << 3;
         const GPIOHANDLE_REQUEST_OPEN_SOURCE    = 1 << 4;
-        #[cfg(feature = "v2")]
         const GPIOHANDLE_REQUEST_BIAS_PULL_UP   = 1 << 5;
-        #[cfg(feature = "v2")]
         const GPIOHANDLE_REQUEST_BIAS_PULL_DOWN = 1 << 6;
-        #[cfg(feature = "v2")]
         const GPIOHANDLE_REQUEST_BIAS_DISABLE   = 1 << 7;
     }
 }

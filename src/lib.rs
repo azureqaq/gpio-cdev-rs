@@ -1,5 +1,4 @@
 #![allow(unused)]
-#![allow(unreachable_pub)]
 
 pub mod errors;
 mod ffi;
