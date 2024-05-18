@@ -1,0 +1,17 @@
+[package]
+name = "lib_uapi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[dependencies]
+libc = "0.2"
+bitflags = "2"
+thiserror = "1"
+nix = { version = "0.28", features = ["ioctl"] }
+
+[lints]
+workspace = true

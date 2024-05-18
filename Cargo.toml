@@ -1,15 +1,27 @@
-[package]
-name = "gpio-cdev"
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+authors = ["AzureQAQ <azureqaq@gmail.com>"]
+repository = "https://github.com/azureqaq/gpio-cdev-async"
+homepage = "https://github.com/azureqaq/gpio-cdev-async"
 
-[dependencies]
-bitflags = "2"
-libc = { version = "0.2", default-features = false }
-nix = { version = "0.28", features = ["ioctl"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unreachable_pub = "warn"
+rust_2018_idioms = "warn"
+single_use_lifetimes = "warn"
+# unused = "allow"              # dev
 
 
-[features]
-default = ["v1", "v2"]
-v1 = []
-v2 = []
+[workspace]
+resolver = "2"
+members = ["lib_uapi"]
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
