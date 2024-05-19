@@ -1,3 +1,19 @@
+pub(crate) mod helper {
+    use std::{ffi::CString, fmt::Display};
+
+    use super::ffi;
+
+    impl<const N: usize> Display for ffi::CString<N> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", cstr_to_string(self.0))
+        }
+    }
+
+    fn cstr_to_string(cstr: impl AsRef<[libc::c_char]>) -> String {
+        String::from_utf8_lossy(cstr.as_ref()).to_string()
+    }
+}
+
 pub(crate) mod ffi {
     pub(crate) const GPIO_MAX_NAME_SIZE: usize = 32;
     pub(crate) const GPIO_IOC_MAGIC: u8 = 0xB4;
@@ -8,7 +24,7 @@ pub(crate) mod ffi {
 
     #[derive(Debug)]
     #[repr(transparent)]
-    pub(crate) struct CString<const N: usize>([libc::c_char; N]);
+    pub(crate) struct CString<const N: usize>(pub(crate) [libc::c_char; N]);
 
     /// Information about a certain GPIO chip
     #[repr(C)]

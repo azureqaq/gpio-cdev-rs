@@ -12,7 +12,7 @@ pub enum IoctlKind {
     SetLineConfig,
     GetValues,
     SetValues,
-    GetLineEvent
+    GetLineEvent,
 }
 
 pub(crate) fn ioctl_error(kind: IoctlKind, source: nix::Error) -> Error {
