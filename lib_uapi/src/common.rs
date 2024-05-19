@@ -1,4 +1,4 @@
-use std::{ffi::CStr, os::fd::AsRawFd};
+use std::{ffi::CStr, fmt::Debug, os::fd::AsRawFd};
 
 use crate::error::Result;
 
@@ -19,6 +19,16 @@ impl ChipInfo {
 
     pub fn lines(&self) -> u32 {
         self.inner.lines
+    }
+}
+
+impl Debug for ChipInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChipInfo")
+            .field("name", &self.name().to_string_lossy())
+            .field("label", &self.label().to_string_lossy())
+            .field("lines", &self.lines())
+            .finish()
     }
 }
 

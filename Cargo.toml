@@ -16,7 +16,7 @@ unused = "allow"              # dev
 
 [workspace]
 resolver = "2"
-members = ["lib_uapi"]
+members = [ "gpio_cdev_async","lib_uapi"]
 
 [profile.release]
 opt-level = 3
