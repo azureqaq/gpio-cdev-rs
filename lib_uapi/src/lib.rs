@@ -3,8 +3,10 @@ std::compile_error!("At least one feature v1 or v2 must be enabled.");
 
 mod common;
 pub mod error;
-pub(crate) mod macros;
+mod macros;
 #[cfg(feature = "v1")]
 mod v1;
 #[cfg(feature = "v2")]
 mod v2;
+
+pub use common::*;

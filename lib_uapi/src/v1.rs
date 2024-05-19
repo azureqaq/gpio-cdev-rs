@@ -99,7 +99,7 @@ mod ffi {
         pub(crate) lineoffset: u32,
         pub(crate) handleflags: u32,
         pub(crate) eventflags: u32,
-        pub(crate) consumer_lable: CString<GPIO_MAX_NAME_SIZE>,
+        pub(crate) consumer_label: CString<GPIO_MAX_NAME_SIZE>,
         pub(crate) fd: libc::c_int,
     }
 

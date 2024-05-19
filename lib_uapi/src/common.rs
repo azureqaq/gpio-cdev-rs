@@ -1,17 +1,42 @@
-pub(crate) mod helper {
-    use std::{ffi::CString, fmt::Display};
+use std::{ffi::CStr, os::fd::AsRawFd};
 
-    use super::ffi;
+use crate::error::Result;
 
-    impl<const N: usize> Display for ffi::CString<N> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "{}", cstr_to_string(self.0))
-        }
+use self::ffi::GpioChipInfo;
+
+pub struct ChipInfo {
+    inner: GpioChipInfo,
+}
+
+impl ChipInfo {
+    pub fn name(&self) -> &CStr {
+        CStr::from_bytes_until_nul(self.inner.name.0.as_slice()).unwrap_or_default()
     }
 
-    fn cstr_to_string(cstr: impl AsRef<[libc::c_char]>) -> String {
-        String::from_utf8_lossy(cstr.as_ref()).to_string()
+    pub fn label(&self) -> &CStr {
+        CStr::from_bytes_until_nul(self.inner.label.0.as_slice()).unwrap_or_default()
     }
+
+    pub fn lines(&self) -> u32 {
+        self.inner.lines
+    }
+}
+
+/// Get the publicly information for a chip
+pub fn get_chipinfo(fd: impl AsRawFd) -> Result<ChipInfo> {
+    let mut inner = unsafe { std::mem::zeroed() };
+    ffi::gpio_get_chipinfo_ioctl(fd.as_raw_fd(), &mut inner)?;
+    Ok(ChipInfo { inner })
+}
+
+/// Remove the line from the list of lines being watched on this chip.
+///
+/// # Errors
+/// - Unwatching a line that is not watched is an error(`EBUSY`)
+pub fn get_lineinfo_unwatch(fd: impl AsRawFd, offset: u32) -> Result<u32> {
+    let mut offset = offset;
+    ffi::gpio_get_lineinfo_unwatch_ioctl(fd.as_raw_fd(), &mut offset)?;
+    Ok(offset)
 }
 
 pub(crate) mod ffi {
@@ -30,7 +55,7 @@ pub(crate) mod ffi {
     #[repr(C)]
     pub(crate) struct GpioChipInfo {
         pub(crate) name: CString<GPIO_MAX_NAME_SIZE>,
-        pub(crate) lable: CString<GPIO_MAX_NAME_SIZE>,
+        pub(crate) label: CString<GPIO_MAX_NAME_SIZE>,
         /// number of GPIO lines on this chip
         pub(crate) lines: u32,
     }
