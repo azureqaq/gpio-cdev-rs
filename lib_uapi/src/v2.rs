@@ -216,6 +216,13 @@ impl LineHandle {
         ffi::gpio_v2_line_get_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(data.bits)
     }
+
+    pub fn set_bites(&self, bites: libc::c_ulong) -> Result<()> {
+        let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
+        data.mask = self.mask;
+        ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
+        Ok(())
+    }
 }
 
 pub struct LineRequestBuilder {
