@@ -67,13 +67,13 @@ impl LineConfig {
     }
 
     pub fn attrs(&self) -> &[LineConfigAttribute] {
-        let prt = &self.inner.attrs;
-        unsafe {
-            std::slice::from_raw_parts(
-                prt.as_ptr() as *const LineConfigAttribute,
-                self.num_attrs() as usize,
-            )
-        }
+        let ptr = self
+            .inner
+            .attrs
+            .get(..self.num_attrs() as usize)
+            .unwrap_or_default();
+        debug_assert!(ptr.len() <= isize::MAX as usize);
+        unsafe { std::slice::from_raw_parts(ptr.as_ptr() as *const LineConfigAttribute, ptr.len()) }
     }
 }
 
@@ -141,14 +141,13 @@ impl LineInfo {
     }
 
     pub fn attrs(&self) -> &[LineAttribute] {
-        let lst = &self.inner.attrs;
+        let lst = self
+            .inner
+            .attrs
+            .get(..self.num_attrs() as usize)
+            .unwrap_or_default();
         debug_assert!(lst.len() <= isize::MAX as usize);
-        unsafe {
-            std::slice::from_raw_parts(
-                lst.as_ptr() as *const LineAttribute,
-                self.num_attrs() as usize,
-            )
-        }
+        unsafe { std::slice::from_raw_parts(lst.as_ptr() as *const LineAttribute, lst.len()) }
     }
 }
 
