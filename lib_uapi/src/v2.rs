@@ -51,6 +51,7 @@ impl Debug for LineRequest {
             .field("offsets", &self.offsets())
             .field("num_lines", &self.num_lines())
             .field("consumer", &self.consumer())
+            .field("config", &self.config())
             .finish()
     }
 }
@@ -222,6 +223,17 @@ impl LineHandle {
         data.mask = self.mask;
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
+    }
+
+    pub fn set_bites_with_submask(&self, mask: libc::c_ulong) -> Result<()> {
+        let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
+        data.mask = self.mask & mask;
+        ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
+        Ok(())
+    }
+
+    pub fn mask(&self) -> libc::c_ulong {
+        self.mask
     }
 }
 
