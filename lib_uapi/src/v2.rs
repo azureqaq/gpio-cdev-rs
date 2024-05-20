@@ -4,10 +4,8 @@ use std::{
     fmt::{Debug, Display},
 };
 
-use self::ffi::{GpioV2LineConfig, GpioV2LineRequest};
-
 pub struct LineRequest {
-    inner: GpioV2LineRequest,
+    inner: ffi::GpioV2LineRequest,
 }
 
 impl LineRequest {
@@ -37,6 +35,11 @@ impl LineRequest {
         debug_assert!(self.inner.fd > 0);
         self.inner.fd
     }
+
+    pub fn config(&self) -> &LineConfig {
+        let c = &self.inner.config;
+        unsafe { &*(c as *const ffi::GpioV2LineConfig as *const LineConfig) }
+    }
 }
 
 impl Display for LineRequest {
@@ -45,6 +48,65 @@ impl Display for LineRequest {
             .field("offsets", &self.offsets())
             .field("num_lines", &self.num_lines())
             .field("consumer", &self.consumer())
+            .finish()
+    }
+}
+
+#[repr(transparent)]
+pub struct LineConfig {
+    inner: ffi::GpioV2LineConfig,
+}
+
+impl LineConfig {
+    pub fn flags(&self) -> libc::c_ulong {
+        self.inner.flags
+    }
+
+    pub fn num_attrs(&self) -> u32 {
+        self.inner.num_attrs
+    }
+
+    pub fn attrs(&self) -> &[LineConfigAttribute] {
+        let prt = &self.inner.attrs;
+        unsafe {
+            std::slice::from_raw_parts(
+                prt.as_ptr() as *const LineConfigAttribute,
+                self.num_attrs() as usize,
+            )
+        }
+    }
+}
+
+impl Debug for LineConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineConfig")
+            .field("flags", &self.flags())
+            .field("num_attrs", &self.num_attrs())
+            .field("attrs", &self.attrs())
+            .finish()
+    }
+}
+
+#[repr(transparent)]
+pub struct LineConfigAttribute {
+    inner: ffi::GpioV2LineConfigAttribute,
+}
+
+impl LineConfigAttribute {
+    pub fn mask(&self) -> libc::c_ulong {
+        self.inner.mask
+    }
+
+    pub fn attr(&self) -> &LineAttribute {
+        unsafe { &*(&self.inner.attr as *const ffi::GpioV2LineAttribute as *const LineAttribute) }
+    }
+}
+
+impl Debug for LineConfigAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineConfigAttribute")
+            .field("attr", &self.attr())
+            .field("mask", &self.mask())
             .finish()
     }
 }
