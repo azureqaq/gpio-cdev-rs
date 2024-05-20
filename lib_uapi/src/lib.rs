@@ -10,3 +10,4 @@ mod v1;
 mod v2;
 
 pub use common::*;
+pub use v2::*;

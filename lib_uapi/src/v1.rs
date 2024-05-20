@@ -38,7 +38,7 @@ mod ffi {
 
     #[repr(C)]
     #[derive(Debug)]
-    pub(crate) struct GpioLineInfoCHanged {
+    pub(crate) struct GpioLineInfoChanged {
         pub(crate) info: GpioLineInfo,
         pub(crate) timestamp: u64,
         pub(crate) event_type: u32,
@@ -117,8 +117,6 @@ mod ffi {
         pub(crate) timestamp: u64,
         pub(crate) id: u32,
     }
-
-    pub(crate) use crate::common::ffi::{gpio_get_chipinfo_ioctl, gpio_get_lineinfo_unwatch_ioctl};
 
     crate::macros::wrap_ioctl!(
         ioctl_readwrite!(

@@ -1,3 +1,80 @@
+use std::{borrow::Cow, ffi::CStr, fmt::Display};
+
+use self::ffi::{GpioV2LineConfig, GpioV2LineRequest};
+
+pub struct LineRequest {
+    inner: GpioV2LineRequest,
+}
+
+impl LineRequest {
+    pub fn num_lines(&self) -> u32 {
+        self.inner.num_lines
+    }
+
+    pub fn offsets(&self) -> &[u32] {
+        debug_assert!(self.num_lines() > 0);
+        self.inner
+            .offsets
+            .get(..self.inner.num_lines as usize)
+            .unwrap_or_default()
+    }
+
+    pub fn consumer(&self) -> Cow<'_, str> {
+        CStr::from_bytes_until_nul(self.inner.consumer.0.as_slice())
+            .unwrap_or_default()
+            .to_string_lossy()
+    }
+
+    pub fn event_buffer_size(&self) -> u32 {
+        self.inner.event_buffer_size
+    }
+
+    pub fn fd(&self) -> libc::c_int {
+        debug_assert!(self.inner.fd > 0);
+        self.inner.fd
+    }
+}
+
+impl Display for LineRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineRequest")
+            .field("offsets", &self.offsets())
+            .field("num_lines", &self.num_lines())
+            .field("consumer", &self.consumer())
+            .finish()
+    }
+}
+
+pub struct LineInfo {
+    inner: ffi::GpioV2LineInfo,
+}
+
+impl LineInfo {
+    pub fn name(&self) -> Cow<'_, str> {
+        CStr::from_bytes_until_nul(self.inner.name.0.as_slice())
+            .unwrap_or_default()
+            .to_string_lossy()
+    }
+
+    pub fn consumer(&self) -> Cow<'_, str> {
+        CStr::from_bytes_until_nul(self.inner.name.0.as_slice())
+            .unwrap_or_default()
+            .to_string_lossy()
+    }
+
+    pub fn offset(&self) -> u32 {
+        self.inner.offset
+    }
+
+    pub fn num_attrs(&self) -> u32 {
+        self.inner.num_attrs
+    }
+
+    pub fn flags(&self) -> libc::c_ulong {
+        self.inner.flags
+    }
+}
+
 mod ffi {
     use std::fmt::Debug;
 
@@ -102,6 +179,7 @@ mod ffi {
     pub(crate) struct GpioV2LineInfo {
         pub(crate) name: CString<GPIO_MAX_NAME_SIZE>,
         pub(crate) consumer: CString<GPIO_MAX_NAME_SIZE>,
+        pub(crate) offset: u32,
         pub(crate) num_attrs: u32,
         pub(crate) flags: libc::c_ulong,
         pub(crate) attrs: [GpioV2LineAttribute; GPIO_V2_LINE_NUM_ATTRS_MAX],
@@ -142,8 +220,6 @@ mod ffi {
         pub(crate) line_seqno: u32,
         pub(crate) padding: Padding<u32, 6>,
     }
-
-    pub(crate) use crate::common::ffi::{gpio_get_chipinfo_ioctl, gpio_get_lineinfo_unwatch_ioctl};
 
     crate::macros::wrap_ioctl!(
         ioctl_readwrite!(
