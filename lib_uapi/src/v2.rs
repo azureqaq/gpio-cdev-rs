@@ -131,6 +131,7 @@ mod helper {
 
     impl From<u32> for ffi::GpioV2LineAttrId {
         fn from(value: u32) -> Self {
+            debug_assert!(matches!(value, 1..=3));
             match value {
                 1 => Self::Flags,
                 2 => Self::OutputValues,
