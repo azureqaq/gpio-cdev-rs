@@ -198,6 +198,17 @@ pub enum LineAttributeValue {
     DebouncePeriodUs(u32),
 }
 
+pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<libc::c_int> {
+    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)
+}
+
+pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
+    let mut inner: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
+    inner.offset = offset;
+    ffi::gpio_v2_get_lineinfo_ioctl(fd.as_raw_fd(), &mut inner)?;
+    Ok(LineInfo { inner })
+}
+
 mod helper {
     use super::ffi;
 
@@ -211,17 +222,6 @@ mod helper {
             }
         }
     }
-}
-
-pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<libc::c_int> {
-    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)
-}
-
-pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
-    let mut inner: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
-    inner.offset = offset;
-    ffi::gpio_v2_get_lineinfo_ioctl(fd.as_raw_fd(), &mut inner)?;
-    Ok(LineInfo { inner })
 }
 
 mod ffi {
