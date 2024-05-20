@@ -73,6 +73,58 @@ impl LineInfo {
     pub fn flags(&self) -> libc::c_ulong {
         self.inner.flags
     }
+
+    pub fn attrs(&self) -> &[LineAttribute] {
+        let lst = &self.inner.attrs;
+        debug_assert!(lst.len() <= isize::MAX as usize);
+        unsafe {
+            std::slice::from_raw_parts(
+                lst.as_ptr() as *const LineAttribute,
+                self.num_attrs() as usize,
+            )
+        }
+    }
+}
+
+#[repr(transparent)]
+pub struct LineAttribute {
+    inner: ffi::GpioV2LineAttribute,
+}
+
+impl LineAttribute {
+    pub fn get_value(&self) -> LineAttributeValue {
+        match ffi::GpioV2LineAttrId::from(self.inner.id) {
+            ffi::GpioV2LineAttrId::Flags => {
+                LineAttributeValue::Flags(unsafe { self.inner.u.flags })
+            }
+            ffi::GpioV2LineAttrId::OutputValues => {
+                LineAttributeValue::Values(unsafe { self.inner.u.values })
+            }
+            ffi::GpioV2LineAttrId::Debounce => {
+                LineAttributeValue::DebouncePeriodUs(unsafe { self.inner.u.debounce_period_us })
+            }
+        }
+    }
+}
+
+pub enum LineAttributeValue {
+    Flags(libc::c_ulong),
+    Values(libc::c_ulong),
+    DebouncePeriodUs(u32),
+}
+
+mod helper {
+    use super::ffi;
+
+    impl From<u32> for ffi::GpioV2LineAttrId {
+        fn from(value: u32) -> Self {
+            match value {
+                1 => Self::Flags,
+                2 => Self::OutputValues,
+                _ => Self::Debounce,
+            }
+        }
+    }
 }
 
 mod ffi {
@@ -121,9 +173,9 @@ mod ffi {
 
     #[repr(C)]
     pub(crate) union Union {
-        flags: libc::c_ulong,
-        values: libc::c_ulong,
-        debounce_period_us: u32,
+        pub(crate) flags: libc::c_ulong,
+        pub(crate) values: libc::c_ulong,
+        pub(crate) debounce_period_us: u32,
     }
 
     impl Debug for Union {
