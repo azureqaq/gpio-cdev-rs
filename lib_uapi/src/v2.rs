@@ -211,23 +211,25 @@ pub struct LineHandle {
 }
 
 impl LineHandle {
-    pub fn get_bites(&self) -> Result<libc::c_ulong> {
+    pub fn get_bits(&self) -> Result<libc::c_ulong> {
         let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
         data.mask = self.mask;
         ffi::gpio_v2_line_get_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(data.bits)
     }
 
-    pub fn set_bites(&self, bites: libc::c_ulong) -> Result<()> {
+    pub fn set_bits(&self, bits: libc::c_ulong) -> Result<()> {
         let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
         data.mask = self.mask;
+        data.bits = bits;
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
     }
 
-    pub fn set_bites_with_submask(&self, mask: libc::c_ulong) -> Result<()> {
+    pub fn set_bits_with_submask(&self, bits: libc::c_ulong, mask: libc::c_ulong) -> Result<()> {
         let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
         data.mask = self.mask & mask;
+        data.bits = bits;
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
     }
@@ -274,10 +276,12 @@ impl LineRequestBuilder {
 }
 
 pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
+    request.inner.offsets.sort_unstable();
     ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
         fd: unsafe { OwnedFd::from_raw_fd(request.fd()) },
-        mask: helper::offsets_to_mask(request.offsets()),
+        // TODO: fix me! mask is index of request.offsets
+        mask: helper::offsets_to_mask(request.offsets().len()),
     })
 }
 
@@ -302,10 +306,10 @@ mod helper {
         }
     }
 
-    pub(crate) fn offsets_to_mask(offsets: &[u32]) -> libc::c_ulong {
+    pub(crate) fn offsets_to_mask(offsets_len: usize) -> libc::c_ulong {
         let mut res: libc::c_ulong = 0;
-        for &n in offsets {
-            res |= (1 << n);
+        for i in 0..offsets_len {
+            res |= (1 << i);
         }
         res
     }
