@@ -1,4 +1,9 @@
-use std::{borrow::Cow, ffi::CStr, fmt::Debug, os::fd::AsRawFd};
+use std::{
+    borrow::Cow,
+    ffi::CStr,
+    fmt::Debug,
+    os::fd::{AsRawFd, FromRawFd, OwnedFd},
+};
 
 use crate::error::Result;
 
@@ -198,8 +203,27 @@ pub enum LineAttributeValue {
     DebouncePeriodUs(u32),
 }
 
-pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<libc::c_int> {
-    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)
+#[derive(Debug)]
+pub struct LineHandle {
+    fd: OwnedFd,
+    mask: libc::c_ulong,
+}
+
+impl LineHandle {
+    pub fn get_bites(&self) -> Result<libc::c_ulong> {
+        let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
+        data.mask = self.mask;
+        ffi::gpio_v2_line_get_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
+        Ok(data.bits)
+    }
+}
+
+pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
+    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
+    Ok(LineHandle {
+        fd: unsafe { OwnedFd::from_raw_fd(request.fd()) },
+        mask: helper::offsets_to_mask(request.offsets()),
+    })
 }
 
 pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
@@ -221,6 +245,14 @@ mod helper {
                 _ => Self::Debounce,
             }
         }
+    }
+
+    pub(crate) fn offsets_to_mask(offsets: &[u32]) -> libc::c_ulong {
+        let mut res: libc::c_ulong = 0;
+        for &n in offsets {
+            res |= (1 << n);
+        }
+        res
     }
 }
 
