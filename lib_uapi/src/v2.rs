@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::error::Result;
+pub use ffi::GpioV2LineFlag as LineFlag;
 
 pub struct LineRequest {
     inner: ffi::GpioV2LineRequest,
@@ -35,7 +36,6 @@ impl LineRequest {
     }
 
     pub fn fd(&self) -> libc::c_int {
-        debug_assert!(self.inner.fd > 0);
         self.inner.fd
     }
 
@@ -61,8 +61,8 @@ pub struct LineConfig {
 }
 
 impl LineConfig {
-    pub fn flags(&self) -> libc::c_ulong {
-        self.inner.flags
+    pub fn flags(&self) -> LineFlag {
+        LineFlag::from_bits_retain(self.inner.flags)
     }
 
     pub fn num_attrs(&self) -> u32 {
@@ -218,6 +218,11 @@ impl LineHandle {
     }
 }
 
+pub struct LineRequestBuilder {
+    offsets: Vec<u32>,
+    consumer: String,
+}
+
 pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
     ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
@@ -263,12 +268,12 @@ mod ffi {
 
     use crate::common::ffi::{CString, Padding, GPIO_MAX_NAME_SIZE};
 
-    const GPIO_V2_LINES_MAX: usize = 64;
+    pub(crate) const GPIO_V2_LINES_MAX: usize = 64;
     const GPIO_V2_LINE_NUM_ATTRS_MAX: usize = 10;
 
     bitflags! {
         #[derive(Debug, Clone, Copy)]
-        pub(crate) struct GpioV2LineFlag: libc::c_ulong {
+        pub struct GpioV2LineFlag: libc::c_ulong {
             const GPIO_V2_LINE_FLAG_USED                 = 1 << 0;
             const GPIO_V2_LINE_FLAG_ACTIVE_LOW           = 1 << 1;
             const GPIO_V2_LINE_FLAG_INPUT                = 1 << 2;
