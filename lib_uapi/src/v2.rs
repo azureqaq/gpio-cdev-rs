@@ -225,9 +225,40 @@ impl LineHandle {
     }
 }
 
+#[derive(Debug)]
 pub struct LineRequestBuilder {
-    offsets: Vec<u32>,
-    consumer: String,
+    inner: ffi::GpioV2LineRequest,
+}
+
+impl LineRequestBuilder {
+    pub fn new(offsets: &[u32], flags: LineFlag, consumer: impl AsRef<str>) -> Self {
+        let offsets_len = offsets.len().min(ffi::GPIO_V2_LINES_MAX);
+        let consumer = consumer.as_ref().as_bytes();
+        let consumer_len = consumer.len().min(crate::common::ffi::GPIO_MAX_NAME_SIZE);
+
+        let mut inner: ffi::GpioV2LineRequest = unsafe { std::mem::zeroed() };
+
+        inner.config.flags = flags.bits();
+        inner
+            .offsets
+            .get_mut(..offsets_len)
+            .unwrap()
+            .copy_from_slice(&offsets[..offsets_len]);
+        inner.num_lines = offsets_len as u32;
+        inner
+            .consumer
+            .0
+            .get_mut(..consumer_len)
+            .unwrap()
+            .copy_from_slice(&consumer[..consumer_len]);
+
+        Self { inner }
+    }
+
+    pub fn build(self) -> Result<LineRequest> {
+        // TODO: check config
+        Ok(LineRequest { inner: self.inner })
+    }
 }
 
 pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
