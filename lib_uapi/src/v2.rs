@@ -1,4 +1,8 @@
-use std::{borrow::Cow, ffi::CStr, fmt::Display};
+use std::{
+    borrow::Cow,
+    ffi::CStr,
+    fmt::{Debug, Display},
+};
 
 use self::ffi::{GpioV2LineConfig, GpioV2LineRequest};
 
@@ -107,6 +111,15 @@ impl LineAttribute {
     }
 }
 
+impl Debug for LineAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("LineAttribute")
+            .field(&self.get_value())
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LineAttributeValue {
     Flags(libc::c_ulong),
     Values(libc::c_ulong),
