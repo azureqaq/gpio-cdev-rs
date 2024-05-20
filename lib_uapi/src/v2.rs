@@ -1,8 +1,4 @@
-use std::{
-    borrow::Cow,
-    ffi::CStr,
-    fmt::{Debug, Display},
-};
+use std::{borrow::Cow, ffi::CStr, fmt::Debug};
 
 pub struct LineRequest {
     inner: ffi::GpioV2LineRequest,
@@ -42,7 +38,7 @@ impl LineRequest {
     }
 }
 
-impl Display for LineRequest {
+impl Debug for LineRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LineRequest")
             .field("offsets", &self.offsets())
