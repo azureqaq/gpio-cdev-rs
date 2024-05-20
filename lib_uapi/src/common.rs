@@ -49,6 +49,16 @@ pub fn get_lineinfo_unwatch(fd: impl AsRawFd, offset: u32) -> Result<u32> {
     Ok(offset)
 }
 
+// pub(crate) mod helper {
+//     use super::ffi;
+
+//     impl<T, const N: usize> ffi::Padding<T, N> {
+//         pub(crate) fn empty() -> Self {
+//             unsafe { std::mem::zeroed() }
+//         }
+//     }
+// }
+
 pub(crate) mod ffi {
     pub(crate) const GPIO_MAX_NAME_SIZE: usize = 32;
     pub(crate) const GPIO_IOC_MAGIC: u8 = 0xB4;

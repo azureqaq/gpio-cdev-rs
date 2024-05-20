@@ -1,4 +1,6 @@
-use std::{borrow::Cow, ffi::CStr, fmt::Debug};
+use std::{borrow::Cow, ffi::CStr, fmt::Debug, os::fd::AsRawFd};
+
+use crate::error::Result;
 
 pub struct LineRequest {
     inner: ffi::GpioV2LineRequest,
@@ -119,7 +121,7 @@ impl LineInfo {
     }
 
     pub fn consumer(&self) -> Cow<'_, str> {
-        CStr::from_bytes_until_nul(self.inner.name.0.as_slice())
+        CStr::from_bytes_until_nul(self.inner.consumer.0.as_slice())
             .unwrap_or_default()
             .to_string_lossy()
     }
@@ -144,6 +146,19 @@ impl LineInfo {
             .unwrap_or_default();
         debug_assert!(lst.len() <= isize::MAX as usize);
         unsafe { std::slice::from_raw_parts(lst.as_ptr() as *const LineAttribute, lst.len()) }
+    }
+}
+
+impl Debug for LineInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineInfo")
+            .field("name", &self.name())
+            .field("consumer", &self.consumer())
+            .field("offset", &self.offset())
+            .field("num_attrs", &self.num_attrs())
+            .field("flags", &self.flags())
+            .field("attrs", &self.attrs())
+            .finish()
     }
 }
 
@@ -196,6 +211,17 @@ mod helper {
             }
         }
     }
+}
+
+pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<libc::c_int> {
+    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)
+}
+
+pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
+    let mut inner: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
+    inner.offset = offset;
+    ffi::gpio_v2_get_lineinfo_ioctl(fd.as_raw_fd(), &mut inner)?;
+    Ok(LineInfo { inner })
 }
 
 mod ffi {
