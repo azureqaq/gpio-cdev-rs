@@ -204,7 +204,6 @@ pub enum LineAttributeValue {
     DebouncePeriodUs(u32),
 }
 
-#[derive(Debug)]
 pub struct LineHandle {
     fd: OwnedFd,
 }
@@ -223,6 +222,14 @@ impl LineHandle {
         data.bits = bits;
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
+    }
+}
+
+impl Debug for LineHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("LineHandle")
+            .field(&self.fd.as_raw_fd())
+            .finish()
     }
 }
 
