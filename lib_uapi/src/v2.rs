@@ -276,11 +276,9 @@ impl LineRequestBuilder {
 }
 
 pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
-    request.inner.offsets.sort_unstable();
     ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
         fd: unsafe { OwnedFd::from_raw_fd(request.fd()) },
-        // TODO: fix me! mask is index of request.offsets
         mask: helper::offsets_to_mask(request.offsets().len()),
     })
 }
