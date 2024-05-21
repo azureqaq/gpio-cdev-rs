@@ -207,35 +207,22 @@ pub enum LineAttributeValue {
 #[derive(Debug)]
 pub struct LineHandle {
     fd: OwnedFd,
-    mask: libc::c_ulong,
 }
 
 impl LineHandle {
-    pub fn get_bits(&self) -> Result<libc::c_ulong> {
+    pub fn get_bits(&self, mask: libc::c_ulong) -> Result<libc::c_ulong> {
         let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
-        data.mask = self.mask;
+        data.mask = mask;
         ffi::gpio_v2_line_get_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(data.bits)
     }
 
-    pub fn set_bits(&self, bits: libc::c_ulong) -> Result<()> {
+    pub fn set_bits(&self, bits: libc::c_ulong, mask: libc::c_ulong) -> Result<()> {
         let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
-        data.mask = self.mask;
+        data.mask = mask;
         data.bits = bits;
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
-    }
-
-    pub fn set_bits_with_submask(&self, bits: libc::c_ulong, mask: libc::c_ulong) -> Result<()> {
-        let mut data: ffi::GpioV2LineValues = unsafe { std::mem::zeroed() };
-        data.mask = self.mask & mask;
-        data.bits = bits;
-        ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
-        Ok(())
-    }
-
-    pub fn mask(&self) -> libc::c_ulong {
-        self.mask
     }
 }
 
@@ -279,7 +266,6 @@ pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandl
     ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
         fd: unsafe { OwnedFd::from_raw_fd(request.fd()) },
-        mask: helper::offsets_to_mask(request.offsets().len()),
     })
 }
 
@@ -302,14 +288,6 @@ mod helper {
                 _ => Self::Debounce,
             }
         }
-    }
-
-    pub(crate) fn offsets_to_mask(offsets_len: usize) -> libc::c_ulong {
-        let mut res: libc::c_ulong = 0;
-        for i in 0..offsets_len {
-            res |= (1 << i);
-        }
-        res
     }
 }
 
