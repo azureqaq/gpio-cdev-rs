@@ -283,6 +283,13 @@ pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
     Ok(LineInfo { inner })
 }
 
+pub fn lineinfo_watch(fd: impl AsRawFd, offset: u32) -> Result<()> {
+    let mut data: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
+    data.offset = offset;
+    ffi::gpio_v2_get_lineinfo_watch_ioctl(fd.as_raw_fd(), &mut data)?;
+    Ok(())
+}
+
 mod helper {
     use super::ffi;
 
