@@ -7,6 +7,7 @@ use std::{
 
 use crate::{error::Result, macros::const_assert};
 pub use ffi::GpioV2LineChangedType as LineChangedType;
+pub use ffi::GpioV2LineEventId as EventId;
 pub use ffi::GpioV2LineFlag as LineFlag;
 
 pub struct LineRequest {
@@ -302,6 +303,40 @@ pub struct LineEvent {
     inner: ffi::GpioV2LineEvent,
 }
 
+impl LineEvent {
+    pub fn timestamp_ns(&self) -> libc::c_ulong {
+        self.inner.timestamp_ns
+    }
+
+    pub fn id(&self) -> EventId {
+        self.inner.id.into()
+    }
+
+    pub fn offset(&self) -> u32 {
+        self.inner.offset
+    }
+
+    pub fn seqno(&self) -> u32 {
+        self.inner.seqno
+    }
+
+    pub fn line_seqno(&self) -> u32 {
+        self.inner.line_seqno
+    }
+}
+
+impl Debug for LineEvent {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineEvent")
+            .field("timestamp_ns", &self.timestamp_ns())
+            .field("id", &self.id())
+            .field("offset", &self.offset())
+            .field("seqno", &self.seqno())
+            .field("line_seqno", &self.line_seqno())
+            .finish()
+    }
+}
+
 pub fn get_line(chip_fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
     ffi::gpio_v2_get_line_ioctl(chip_fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
@@ -382,6 +417,16 @@ mod helper {
                 1 => Self::Requested,
                 2 => Self::Released,
                 _ => Self::Config,
+            }
+        }
+    }
+
+    impl From<u32> for ffi::GpioV2LineEventId {
+        fn from(value: u32) -> Self {
+            debug_assert!(matches!(value, 1..=2));
+            match value {
+                1 => Self::RisingEdge,
+                _ => Self::FallingEdge,
             }
         }
     }
@@ -517,7 +562,7 @@ mod ffi {
 
     #[derive(Debug)]
     #[repr(u32)]
-    pub(crate) enum GpioV2LineEventId {
+    pub enum GpioV2LineEventId {
         RisingEdge = 1,
         FallingEdge = 2,
     }
