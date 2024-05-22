@@ -297,6 +297,11 @@ impl Debug for LineInfoChanged {
     }
 }
 
+#[repr(transparent)]
+pub struct LineEvent {
+    inner: ffi::GpioV2LineEvent,
+}
+
 pub fn get_line(chip_fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
     ffi::gpio_v2_get_line_ioctl(chip_fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
@@ -321,8 +326,27 @@ pub fn lineinfo_watch(chip_fd: impl AsRawFd, offset: u32) -> Result<()> {
 pub fn read_lineinfo_changed(chip_fd: impl AsRawFd, buf: &mut [LineInfoChanged]) -> Result<usize> {
     const T_SIZE: usize = std::mem::size_of::<LineInfoChanged>();
     const_assert!(std::mem::align_of::<LineInfoChanged>() == 0x8);
-    let ptr: *mut libc::c_void = std::ptr::addr_of_mut!(*buf) as *mut libc::c_void;
+    let ptr = std::ptr::addr_of_mut!(*buf) as *mut libc::c_void;
     let res = unsafe { libc::read(chip_fd.as_raw_fd(), ptr, buf.len() * T_SIZE) };
+    match res {
+        -1 => Err(crate::error::ioctl_error(
+            crate::error::IoctlKind::GetLineInfo,
+            nix::Error::last(),
+        )),
+        n => {
+            debug_assert!(n >= 0);
+            let n = n as usize;
+            debug_assert!(n % T_SIZE == 0);
+            Ok(n / T_SIZE)
+        }
+    }
+}
+
+pub fn read_line_event(req_fd: impl AsRawFd, buf: &mut [LineEvent]) -> Result<usize> {
+    const T_SIZE: usize = std::mem::size_of::<LineEvent>();
+    const_assert!(std::mem::align_of::<LineEvent>() == 0x8);
+    let ptr = std::ptr::addr_of_mut!(*buf) as *mut libc::c_void;
+    let res = unsafe { libc::read(req_fd.as_raw_fd(), ptr, buf.len() * T_SIZE) };
     match res {
         -1 => Err(crate::error::ioctl_error(
             crate::error::IoctlKind::GetLineEvent,
