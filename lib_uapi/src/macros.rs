@@ -12,4 +12,11 @@ macro_rules! wrap_ioctl {
     };
 }
 
+macro_rules! const_assert {
+    ($($tt:tt)*) => {
+        const _: () = assert!($($tt)*);
+    };
+}
+
+pub(crate) use const_assert;
 pub(crate) use wrap_ioctl;

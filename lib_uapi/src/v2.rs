@@ -5,7 +5,8 @@ use std::{
     os::fd::{AsRawFd, FromRawFd, OwnedFd},
 };
 
-use crate::error::Result;
+use crate::{error::Result, macros::const_assert};
+pub use ffi::GpioV2LineChangedType as LineChangedType;
 pub use ffi::GpioV2LineFlag as LineFlag;
 
 pub struct LineRequest {
@@ -267,25 +268,73 @@ impl LineRequestBuilder {
     }
 }
 
-pub fn get_line(fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
-    ffi::gpio_v2_get_line_ioctl(fd.as_raw_fd(), &mut request.inner)?;
+#[repr(transparent)]
+pub struct LineInfoChanged {
+    inner: ffi::GpioV2LineInfoChanged,
+}
+
+impl LineInfoChanged {
+    pub fn lineinfo(&self) -> &LineInfo {
+        unsafe { &*(&self.inner.info as *const ffi::GpioV2LineInfo as *const LineInfo) }
+    }
+
+    pub fn timestamp_ns(&self) -> libc::c_ulong {
+        self.inner.timestamp_ns
+    }
+
+    pub fn event_type(&self) -> LineChangedType {
+        self.inner.event_type.into()
+    }
+}
+
+impl Debug for LineInfoChanged {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LineInfoChanged")
+            .field("lineinfo", &self.lineinfo())
+            .field("timestamp_ns", &self.timestamp_ns())
+            .field("event_type", &self.event_type())
+            .finish()
+    }
+}
+
+pub fn get_line(chip_fd: impl AsRawFd, request: &mut LineRequest) -> Result<LineHandle> {
+    ffi::gpio_v2_get_line_ioctl(chip_fd.as_raw_fd(), &mut request.inner)?;
     Ok(LineHandle {
         fd: unsafe { OwnedFd::from_raw_fd(request.fd()) },
     })
 }
 
-pub fn get_lineinfo(fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
+pub fn get_lineinfo(chip_fd: impl AsRawFd, offset: u32) -> Result<LineInfo> {
     let mut inner: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
     inner.offset = offset;
-    ffi::gpio_v2_get_lineinfo_ioctl(fd.as_raw_fd(), &mut inner)?;
+    ffi::gpio_v2_get_lineinfo_ioctl(chip_fd.as_raw_fd(), &mut inner)?;
     Ok(LineInfo { inner })
 }
 
-pub fn lineinfo_watch(fd: impl AsRawFd, offset: u32) -> Result<()> {
+pub fn lineinfo_watch(chip_fd: impl AsRawFd, offset: u32) -> Result<()> {
     let mut data: ffi::GpioV2LineInfo = unsafe { std::mem::zeroed() };
     data.offset = offset;
-    ffi::gpio_v2_get_lineinfo_watch_ioctl(fd.as_raw_fd(), &mut data)?;
+    ffi::gpio_v2_get_lineinfo_watch_ioctl(chip_fd.as_raw_fd(), &mut data)?;
     Ok(())
+}
+
+pub fn read_lineinfo_changed(chip_fd: impl AsRawFd, buf: &mut [LineInfoChanged]) -> Result<usize> {
+    const T_SIZE: usize = std::mem::size_of::<LineInfoChanged>();
+    const_assert!(std::mem::align_of::<LineInfoChanged>() == 0x8);
+    let ptr: *mut libc::c_void = std::ptr::addr_of_mut!(*buf) as *mut libc::c_void;
+    let res = unsafe { libc::read(chip_fd.as_raw_fd(), ptr, buf.len() * T_SIZE) };
+    match res {
+        -1 => Err(crate::error::ioctl_error(
+            crate::error::IoctlKind::GetLineEvent,
+            nix::Error::last(),
+        )),
+        n => {
+            debug_assert!(n >= 0);
+            let n = n as usize;
+            debug_assert!(n % T_SIZE == 0);
+            Ok(n / T_SIZE)
+        }
+    }
 }
 
 mod helper {
@@ -298,6 +347,17 @@ mod helper {
                 1 => Self::Flags,
                 2 => Self::OutputValues,
                 _ => Self::Debounce,
+            }
+        }
+    }
+
+    impl From<u32> for ffi::GpioV2LineChangedType {
+        fn from(value: u32) -> Self {
+            debug_assert!(matches!(value, 1..=3));
+            match value {
+                1 => Self::Requested,
+                2 => Self::Released,
+                _ => Self::Config,
             }
         }
     }
@@ -416,7 +476,7 @@ mod ffi {
 
     #[derive(Debug)]
     #[repr(u32)]
-    pub(crate) enum GpioV2LineChangedType {
+    pub enum GpioV2LineChangedType {
         Requested = 1,
         Released = 2,
         Config = 3,
