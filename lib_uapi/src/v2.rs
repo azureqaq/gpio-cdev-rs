@@ -227,9 +227,7 @@ impl LineHandle {
 
 impl Debug for LineHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("LineHandle")
-            .field(&self.fd.as_raw_fd())
-            .finish()
+        f.write_str("LineHandle")
     }
 }
 
