@@ -225,6 +225,11 @@ impl LineHandle {
         ffi::gpio_v2_line_set_values_ioctl(self.fd.as_raw_fd(), &mut data)?;
         Ok(())
     }
+
+    pub fn set_config(&self, config: &mut LineConfig) -> Result<()> {
+        ffi::gpio_v2_line_set_config_ioctl(self.fd.as_raw_fd(), &mut config.inner)?;
+        Ok(())
+    }
 }
 
 impl Debug for LineHandle {
