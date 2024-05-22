@@ -490,13 +490,7 @@ mod ffi {
 
     impl Debug for Union {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            unsafe {
-                match self {
-                    Self { flags } => write!(f, "{}", flags),
-                    Self { values } => write!(f, "{}", values),
-                    Self { debounce_period_us } => write!(f, "{}", debounce_period_us),
-                }
-            }
+            f.write_str("Union")
         }
     }
 

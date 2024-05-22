@@ -1,4 +1,5 @@
 mod ffi {
+    #![allow(unused)]
     use bitflags::bitflags;
 
     use crate::common::ffi::{CString, Padding, GPIO_MAX_NAME_SIZE};
