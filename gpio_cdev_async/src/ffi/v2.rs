@@ -5,7 +5,7 @@ use bitflags::bitflags;
 use crate::ffi::common::{CString, Padding, GPIO_MAX_NAME_SIZE};
 
 pub(crate) const GPIO_V2_LINES_MAX: usize = 64;
-const GPIO_V2_LINE_NUM_ATTRS_MAX: usize = 10;
+pub(crate) const GPIO_V2_LINE_NUM_ATTRS_MAX: usize = 10;
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
@@ -196,3 +196,18 @@ crate::macros::wrap_ioctl!(
     ),
     crate::error::IoctlKind::SetValues
 );
+
+pub(crate) mod helper {
+    use super::*;
+
+    impl From<u32> for GpioV2LineAttrId {
+        fn from(value: u32) -> Self {
+            debug_assert!(matches!(value, 1..=3));
+            match value {
+                1 => Self::Flags,
+                2 => Self::OutputValues,
+                _ => Self::Debounce,
+            }
+        }
+    }
+}

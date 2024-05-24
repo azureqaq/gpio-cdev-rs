@@ -2,6 +2,8 @@
 pub enum Error {
     #[error("Ioctl to {:?} failed: {}", .kind, .source)]
     Ioctl { kind: IoctlKind, source: nix::Error },
+    #[error("io error: {}", .0)]
+    Io(#[from] std::io::Error),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

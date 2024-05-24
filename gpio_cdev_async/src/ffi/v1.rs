@@ -6,7 +6,7 @@ const GPIOHANDLES_MAX: usize = 64;
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
-    pub(crate) struct GpioLineFlags: u32 {
+    pub struct GpioLineFlag: u32 {
         const KERNEL         = 1 << 0;
         const IS_OUT         = 1 << 1;
         const ACTIVE_LOW     = 1 << 2;

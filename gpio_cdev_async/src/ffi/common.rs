@@ -38,3 +38,23 @@ crate::macros::wrap_ioctl!(
     ),
     crate::error::IoctlKind::GetLineInfo
 );
+
+pub(crate) mod helper {
+    use std::{borrow::Cow, ffi::CStr, fmt::Display};
+
+    use super::CString;
+
+    impl<const N: usize> CString<N> {
+        pub(crate) fn to_string_lossy(&self) -> Cow<'_, str> {
+            CStr::from_bytes_until_nul(self.0.as_slice())
+                .unwrap_or_default()
+                .to_string_lossy()
+        }
+    }
+
+    impl<const N: usize> Display for CString<N> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.to_string_lossy())
+        }
+    }
+}
