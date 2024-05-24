@@ -11,16 +11,9 @@ homepage = "https://github.com/azureqaq/gpio-cdev-async"
 unreachable_pub = "warn"
 rust_2018_idioms = "warn"
 single_use_lifetimes = "warn"
-# unused = "allow"              # dev
+unused = "allow"              # dev
 
 
 [workspace]
 resolver = "2"
-members = [ "gpio_cdev_async","lib_uapi"]
-
-[profile.release]
-opt-level = 3
-lto = "fat"
-codegen-units = 1
-panic = "abort"
-strip = "symbols"
+members = ["gpio_cdev_async"]

@@ -1,1 +1,3 @@
-mod chip;
+pub mod error;
+mod ffi;
+mod macros;
