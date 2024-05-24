@@ -47,7 +47,7 @@ impl LineInfo {
     }
 
     #[cfg(feature = "v2")]
-    pub fn attrs(&self) -> tinyvec::TinyVec<[LineAttribute; ffi::v2::GPIO_V2_LINE_NUM_ATTRS_MAX]> {
+    pub fn attrs(&self) -> tinyvec::ArrayVec<[LineAttribute; ffi::v2::GPIO_V2_LINE_NUM_ATTRS_MAX]> {
         debug_assert!(self.num_attrs() as usize <= ffi::v2::GPIO_V2_LINE_NUM_ATTRS_MAX);
         self.inner
             .attrs
@@ -93,6 +93,8 @@ pub enum LineAttribute {
 
 #[cfg(feature = "v2")]
 impl Default for LineAttribute {
+    /// This implementation is solely to meet the requirements of `tinyvec`.
+    /// Do not use it.
     fn default() -> Self {
         Self::Values(0)
     }
