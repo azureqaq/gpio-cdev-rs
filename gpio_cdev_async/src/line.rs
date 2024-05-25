@@ -221,10 +221,31 @@ impl LinesRequest {
             .unwrap_or_default()
     }
 
-    #[cfg(feature = "v1")]
     pub fn default_value_of_offset(&self, offset: u32) -> Option<u8> {
-        let index = self.offsets().iter().position(|&o| o == offset)?;
-        self.default_values().get(index).copied()
+        #[cfg(feature = "v1")]
+        {
+            let index = self.offsets().iter().position(|&o| o == offset)?;
+            self.default_values().get(index).copied()
+        }
+        #[cfg(feature = "v2")]
+        {
+            let index = self.offsets().iter().position(|&o| o == offset)?;
+            self.attrs().iter().find_map(|c_attr| {
+                if c_attr.mask & (1 << index) != 0 {
+                    if let LineAttribute::Values(values) = LineAttribute::from(&c_attr.attr) {
+                        if values & (1 << index) != 0 {
+                            Some(1)
+                        } else {
+                            Some(0)
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+        }
     }
 }
 
