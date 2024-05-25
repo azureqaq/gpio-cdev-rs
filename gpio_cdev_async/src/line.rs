@@ -77,10 +77,10 @@ impl Debug for LineInfo {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy)]
 #[cfg(feature = "v2")]
 pub enum LineAttribute {
-    Flags(libc::c_ulong),
+    Flags(LineFlags),
     Values(libc::c_ulong),
     DebouncePeriodUs(u32),
 }
@@ -91,7 +91,9 @@ impl From<&ffi::v2::GpioV2LineAttribute> for LineAttribute {
         use ffi::v2::GpioV2LineAttrId;
         let id = GpioV2LineAttrId::from(attr.id);
         match id {
-            GpioV2LineAttrId::Flags => Self::Flags(unsafe { attr.u.flags }),
+            GpioV2LineAttrId::Flags => {
+                Self::Flags(LineFlags::from_bits_retain(unsafe { attr.u.flags }))
+            }
             GpioV2LineAttrId::OutputValues => Self::Values(unsafe { attr.u.values }),
             GpioV2LineAttrId::Debounce => {
                 Self::DebouncePeriodUs(unsafe { attr.u.debounce_period_us })
@@ -193,7 +195,7 @@ impl LinesRequest {
             .find_map(|c_attr| {
                 if c_attr.mask & (1 << index) != 0 {
                     match LineAttribute::from(&c_attr.attr) {
-                        LineAttribute::Flags(f) => Some(HandleFlags::from_bits_retain(f)),
+                        LineAttribute::Flags(f) => Some(f),
                         _ => None,
                     }
                 } else {
@@ -242,7 +244,7 @@ impl Iterator for LinesAttrsIter<'_> {
             if c_attr.mask & (1 << self.index) != 0 {
                 LineAttribute::from(&c_attr.attr)
             } else {
-                LineAttribute::Flags(self.default_flags.bits())
+                LineAttribute::Flags(self.default_flags)
             }
         });
         let res = f.map(|attr| LinesAttrsIterItem {
