@@ -121,6 +121,7 @@ impl LinesHandle {
     }
 }
 
+#[repr(transparent)]
 pub struct LinesRequest {
     #[cfg(feature = "v1")]
     inner: ffi::v1::GpioHandleRequest,
@@ -201,5 +202,54 @@ impl LinesRequest {
             });
 
         Some(f.unwrap_or_else(|| self.flags()))
+    }
+
+    #[cfg(feature = "v2")]
+    pub fn attr_iter(&self) -> LinesAttrsIter<'_> {
+        LinesAttrsIter {
+            index: 0,
+            offsets: self.offsets(),
+            default_flags: self.flags(),
+            inner: self.inner.config.attrs.iter(),
+        }
+    }
+}
+
+#[cfg(feature = "v2")]
+pub struct LinesAttrsIter<'a> {
+    index: usize,
+    offsets: &'a [u32],
+    default_flags: LineFlags,
+    inner: std::slice::Iter<'a, ffi::v2::GpioV2LineConfigAttribute>,
+}
+
+#[cfg(feature = "v2")]
+#[derive(Debug, Clone, Copy)]
+pub struct LinesAttrsIterItem {
+    offset: u32,
+    attr: LineAttribute,
+}
+
+#[cfg(feature = "v2")]
+impl Iterator for LinesAttrsIter<'_> {
+    type Item = LinesAttrsIterItem;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index >= self.offsets.len() {
+            return None;
+        }
+        let f = self.inner.next().map(|c_attr| {
+            if c_attr.mask & (1 << self.index) != 0 {
+                LineAttribute::from(&c_attr.attr)
+            } else {
+                LineAttribute::Flags(self.default_flags.bits())
+            }
+        });
+        let res = f.map(|attr| LinesAttrsIterItem {
+            offset: self.offsets[self.index],
+            attr,
+        });
+        self.index += 1;
+        res
     }
 }
