@@ -11,7 +11,7 @@ homepage.workspace = true
 libc = "0.2"
 bitflags = "2"
 thiserror = "1"
-tinyvec = { version = "1", features = ["rustc_1_57"], optional = true }
+tinyvec = { version = "1", features = ["rustc_1_57", "alloc"] }
 nix = { version = "0.28", features = ["ioctl"] }
 
 [lints]
@@ -21,4 +21,4 @@ workspace = true
 # default = ["v1"]
 default = ["v2"]
 v1 = []
-v2 = ["dep:tinyvec"]
+v2 = []

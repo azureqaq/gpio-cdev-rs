@@ -46,7 +46,7 @@ pub(crate) struct GpioLineInfoChanged {
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
-    pub(crate) struct GpioHandleFlags: u32 {
+    pub struct GpioHandleFlags: u32 {
         const REQUEST_INPUT          = 1 << 0;
         const REQUEST_OUTPUT         = 1 << 1;
         const REQUEST_ACTIVE_LOW     = 1 << 2;
