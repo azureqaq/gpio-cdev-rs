@@ -11,7 +11,7 @@ use crate::{ffi, line::LineInfo, Result};
 
 #[derive(Debug)]
 pub struct Chip {
-    file: File,
+    pub(crate) file: File,
     path: PathBuf,
 }
 

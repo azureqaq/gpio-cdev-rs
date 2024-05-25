@@ -1,6 +1,10 @@
-use std::{borrow::Cow, fmt::Debug, os::fd::OwnedFd};
+use std::{
+    borrow::Cow,
+    fmt::Debug,
+    os::fd::{AsRawFd, FromRawFd, OwnedFd},
+};
 
-use crate::ffi;
+use crate::{chip::Chip, ffi, Result};
 
 #[cfg(feature = "v1")]
 pub use ffi::v1::GpioHandleFlags as HandleFlags;
@@ -183,75 +187,66 @@ impl LinesRequest {
     }
 
     #[cfg(feature = "v2")]
+    fn attrs(&self) -> &[ffi::v2::GpioV2LineConfigAttribute] {
+        self.inner
+            .config
+            .attrs
+            .get(..self.inner.config.num_attrs as usize)
+            .unwrap_or_default()
+    }
+
+    #[cfg(feature = "v2")]
     pub fn flags_of_offset(&self, offset: u32) -> Option<HandleFlags> {
         use ffi::v2::{GpioV2LineAttrId, GpioV2LineAttribute};
         let index = self.offsets().iter().position(|&o| o == offset)?;
-        let f = self
-            .inner
-            .config
-            .attrs
-            .iter()
-            .take(self.inner.config.num_attrs as usize)
-            .find_map(|c_attr| {
-                if c_attr.mask & (1 << index) != 0 {
-                    match LineAttribute::from(&c_attr.attr) {
-                        LineAttribute::Flags(f) => Some(f),
-                        _ => None,
-                    }
-                } else {
-                    None
+        let f = self.attrs().iter().find_map(|c_attr| {
+            if c_attr.mask & (1 << index) != 0 {
+                match LineAttribute::from(&c_attr.attr) {
+                    LineAttribute::Flags(f) => Some(f),
+                    _ => None,
                 }
-            });
+            } else {
+                None
+            }
+        });
 
         Some(f.unwrap_or_else(|| self.flags()))
     }
 
-    #[cfg(feature = "v2")]
-    pub fn attr_iter(&self) -> LinesAttrsIter<'_> {
-        LinesAttrsIter {
-            index: 0,
-            offsets: self.offsets(),
-            default_flags: self.flags(),
-            inner: self.inner.config.attrs.iter(),
-        }
+    #[cfg(feature = "v1")]
+    pub fn default_values(&self) -> &[u8] {
+        self.inner
+            .default_values
+            .get(..self.inner.lines as usize)
+            .unwrap_or_default()
+    }
+
+    #[cfg(feature = "v1")]
+    pub fn default_value_of_offset(&self, offset: u32) -> Option<u8> {
+        let index = self.offsets().iter().position(|&o| o == offset)?;
+        self.default_values().get(index).copied()
     }
 }
 
-#[cfg(feature = "v2")]
-pub struct LinesAttrsIter<'a> {
-    index: usize,
-    offsets: &'a [u32],
-    default_flags: LineFlags,
-    inner: std::slice::Iter<'a, ffi::v2::GpioV2LineConfigAttribute>,
-}
-
-#[cfg(feature = "v2")]
-#[derive(Debug, Clone, Copy)]
-pub struct LinesAttrsIterItem {
-    offset: u32,
-    attr: LineAttribute,
-}
-
-#[cfg(feature = "v2")]
-impl Iterator for LinesAttrsIter<'_> {
-    type Item = LinesAttrsIterItem;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.offsets.len() {
-            return None;
+impl LinesRequest {
+    pub fn request(self, chip: &Chip) -> Result<LinesHandle> {
+        #[cfg(feature = "v2")]
+        {
+            let mut data = self;
+            ffi::v2::gpio_v2_get_line_ioctl(chip.file.as_raw_fd(), &mut data.inner)?;
+            Ok(LinesHandle {
+                offsets: data.offsets().into(),
+                req_fd: unsafe { OwnedFd::from_raw_fd(data.inner.fd) },
+            })
         }
-        let f = self.inner.next().map(|c_attr| {
-            if c_attr.mask & (1 << self.index) != 0 {
-                LineAttribute::from(&c_attr.attr)
-            } else {
-                LineAttribute::Flags(self.default_flags)
-            }
-        });
-        let res = f.map(|attr| LinesAttrsIterItem {
-            offset: self.offsets[self.index],
-            attr,
-        });
-        self.index += 1;
-        res
+        #[cfg(feature = "v1")]
+        {
+            let mut data = self;
+            ffi::v1::gpio_get_linehandle_ioctl(chip.file.as_raw_fd(), &mut data.inner)?;
+            Ok(LinesHandle {
+                offsets: data.offsets().into(),
+                req_fd: unsafe { OwnedFd::from_raw_fd(data.inner.fd) },
+            })
+        }
     }
 }
