@@ -16,8 +16,6 @@ pub use ffi::v1::GpioLineFlag as LineFlags;
 #[cfg(feature = "v2")]
 pub use ffi::v2::GpioV2LineFlag as LineFlags;
 
-use tinyvec::TinyVec;
-
 #[repr(transparent)]
 pub struct LineInfo {
     #[cfg(feature = "v1")]
@@ -57,13 +55,13 @@ impl LineInfo {
     }
 
     #[cfg(feature = "v2")]
-    pub fn attrs(&self) -> tinyvec::ArrayVec<[LineAttribute; ffi::v2::GPIO_V2_LINE_NUM_ATTRS_MAX]> {
+    pub fn attrs(&self) -> Vec<LinesAttribute> {
         debug_assert!(self.num_attrs() as usize <= ffi::v2::GPIO_V2_LINE_NUM_ATTRS_MAX);
         self.inner
             .attrs
             .iter()
             .take(self.num_attrs() as usize)
-            .map(LineAttribute::from)
+            .map(LinesAttribute::from)
             .collect()
     }
 }
@@ -83,14 +81,14 @@ impl Debug for LineInfo {
 
 #[derive(Debug, Clone, Copy)]
 #[cfg(feature = "v2")]
-pub enum LineAttribute {
+pub enum LinesAttribute {
     Flags(LineFlags),
     Values(libc::c_ulong),
     DebouncePeriodUs(u32),
 }
 
 #[cfg(feature = "v2")]
-impl From<&ffi::v2::GpioV2LineAttribute> for LineAttribute {
+impl From<&ffi::v2::GpioV2LineAttribute> for LinesAttribute {
     fn from(attr: &ffi::v2::GpioV2LineAttribute) -> Self {
         use ffi::v2::GpioV2LineAttrId;
         let id = GpioV2LineAttrId::from(attr.id);
@@ -107,7 +105,7 @@ impl From<&ffi::v2::GpioV2LineAttribute> for LineAttribute {
 }
 
 #[cfg(feature = "v2")]
-impl Default for LineAttribute {
+impl Default for LinesAttribute {
     /// This implementation is solely to meet the requirements of `tinyvec`.
     /// Do not use it.
     fn default() -> Self {
@@ -116,7 +114,7 @@ impl Default for LineAttribute {
 }
 
 pub struct LinesHandle {
-    offsets: TinyVec<[u32; 8]>,
+    offsets: Vec<u32>,
     req_fd: OwnedFd,
 }
 
@@ -298,8 +296,8 @@ impl LinesRequest {
         let index = self.index_of_offset(offset)?;
         let f = self.attrs().iter().find_map(|c_attr| {
             if c_attr.mask & (1 << index) != 0 {
-                match LineAttribute::from(&c_attr.attr) {
-                    LineAttribute::Flags(f) => Some(f),
+                match LinesAttribute::from(&c_attr.attr) {
+                    LinesAttribute::Flags(f) => Some(f),
                     _ => None,
                 }
             } else {
@@ -330,7 +328,7 @@ impl LinesRequest {
             let index = self.index_of_offset(offset)?;
             self.attrs().iter().find_map(|c_attr| {
                 if c_attr.mask & (1 << index) != 0 {
-                    if let LineAttribute::Values(values) = LineAttribute::from(&c_attr.attr) {
+                    if let LinesAttribute::Values(values) = LinesAttribute::from(&c_attr.attr) {
                         if values & (1 << index) != 0 {
                             Some(1)
                         } else {
@@ -370,6 +368,18 @@ impl LinesRequest {
     }
 }
 
+impl Debug for LinesRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut res = f.debug_struct("LinesRequest");
+        res.field("offsets", &self.offsets());
+        res.field("consumer", &self.consumer());
+        res.field("flags", &self.flags());
+        #[cfg(feature = "v2")]
+        res.field("attrs", &self.attrs());
+        res.finish()
+    }
+}
+
 fn offsets_to_mask(offsets: &[u32], target_offsets: impl AsRef<[u32]>) -> libc::c_ulong {
     let target_offsets = target_offsets.as_ref();
     let mut mask = 0;
@@ -391,7 +401,7 @@ pub struct LineValues {
     inner: ffi::v2::GpioV2LineValues,
     #[cfg(feature = "v1")]
     inner: ffi::v1::GpioHandleData,
-    offsets: TinyVec<[u32; 8]>,
+    offsets: Vec<u32>,
 }
 
 impl LineValues {
@@ -491,7 +501,7 @@ impl Clone for LineValuesIter<'_> {
 
 pub struct LinesRequestBuilder {
     inner: LinesRequest,
-    index: usize,
+    #[cfg(feature = "v2")]
     edge_dection: bool,
 }
 
@@ -527,14 +537,56 @@ impl LinesRequestBuilder {
         self
     }
 
-    pub fn set_offsets(mut self, offsets: impl AsRef<[u32]>) -> Self {
+    pub fn set_offsets<I, T>(mut self, configs: I) -> Self
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<OffsetRequestConfig>,
+    {
         #[cfg(feature = "v2")]
         {
-            let offsets = offsets.as_ref();
-            let len = offsets.len().min(self.inner.inner.offsets.len());
-            self.inner.inner.offsets[..len].copy_from_slice(&offsets[..len]);
-            self.inner.inner.num_lines = len as u32;
+            // also as line index
+            let mut lines_num = 0;
+            // also as attr index
+            let mut attrs_num = 0;
+
+            'outer: for config in configs
+                .into_iter()
+                .map(Into::<OffsetRequestConfig>::into)
+                .take(self.inner.inner.offsets.len())
+            {
+                // set offset
+                self.inner.inner.offsets[lines_num as usize] = config.offset;
+                // set attr
+                for attr in config.line_attr {
+                    let attr_config = &mut self.inner.inner.config.attrs[attrs_num as usize];
+                    attr_config.mask = 1 << lines_num;
+
+                    // check edge_dection
+                    if let LineAttribute::Flags(f) = attr {
+                        self.edge_dection = f.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_RISING)
+                            | f.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_FALLING);
+                    }
+
+                    attr_config.attr = attr.into_line_attribute(lines_num);
+
+                    attrs_num += 1;
+                    if attrs_num as usize >= self.inner.inner.config.attrs.len() {
+                        break 'outer;
+                    }
+                }
+
+                lines_num += 1;
+            }
+
+            self.inner.inner.num_lines = lines_num;
+            self.inner.inner.config.num_attrs = attrs_num;
         }
+
+        #[cfg(feature = "v1")]
+        {
+            todo!()
+        }
+
         self
     }
 
@@ -553,5 +605,93 @@ impl LinesRequestBuilder {
 impl Default for LinesRequestBuilder {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[derive(Debug)]
+pub struct OffsetRequestConfig {
+    offset: u32,
+    #[cfg(feature = "v1")]
+    default_value: Option<u8>,
+    #[cfg(feature = "v2")]
+    line_attr: Vec<LineAttribute>,
+}
+
+#[cfg(feature = "v2")]
+impl<T> From<(u32, T)> for OffsetRequestConfig
+where
+    T: Into<Vec<LineAttribute>>,
+{
+    fn from(value: (u32, T)) -> Self {
+        Self {
+            offset: value.0,
+            line_attr: value.1.into(),
+        }
+    }
+}
+
+#[cfg(feature = "v1")]
+impl From<(u32, u8)> for OffsetRequestConfig {
+    fn from((offset, default_value): (u32, u8)) -> Self {
+        Self {
+            offset,
+            default_value: Some(default_value),
+        }
+    }
+}
+
+impl From<u32> for OffsetRequestConfig {
+    fn from(value: u32) -> Self {
+        #[cfg(feature = "v2")]
+        {
+            Self {
+                offset: value,
+                line_attr: Vec::default(),
+            }
+        }
+        #[cfg(feature = "v1")]
+        {
+            Self {
+                offset: value,
+                default_value: None,
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+#[cfg(feature = "v2")]
+pub enum LineAttribute {
+    Flags(LineFlags),
+    Value(u8),
+    DebouncePeriodUs(u32),
+}
+
+#[cfg(feature = "v2")]
+impl LineAttribute {
+    fn into_line_attribute(self, index: u32) -> ffi::v2::GpioV2LineAttribute {
+        match self {
+            Self::Value(v) => ffi::v2::GpioV2LineAttribute {
+                id: ffi::v2::GpioV2LineAttrId::OutputValues as u32,
+                padding: ffi::common::Padding([0]),
+                u: ffi::v2::Union {
+                    values: if v == 0 { 0 } else { 1 << index },
+                },
+            },
+            Self::Flags(flags) => ffi::v2::GpioV2LineAttribute {
+                id: ffi::v2::GpioV2LineAttrId::Flags as u32,
+                padding: ffi::common::Padding([0]),
+                u: ffi::v2::Union {
+                    flags: flags.bits(),
+                },
+            },
+            Self::DebouncePeriodUs(us) => ffi::v2::GpioV2LineAttribute {
+                id: ffi::v2::GpioV2LineAttrId::Debounce as u32,
+                padding: ffi::common::Padding([0]),
+                u: ffi::v2::Union {
+                    debounce_period_us: us,
+                },
+            },
+        }
     }
 }

@@ -3,7 +3,7 @@ pub(crate) const GPIO_IOC_MAGIC: u8 = 0xB4;
 
 #[derive(Debug)]
 #[repr(transparent)]
-pub(crate) struct Padding<T, const N: usize>([T; N]);
+pub(crate) struct Padding<T, const N: usize>(pub(crate) [T; N]);
 
 #[derive(Debug)]
 #[repr(transparent)]
