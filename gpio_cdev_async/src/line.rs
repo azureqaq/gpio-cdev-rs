@@ -74,7 +74,7 @@ impl Debug for LineInfo {
         temp.field("name", &self.name());
         temp.field("consumer", &self.consumer());
         #[cfg(feature = "v2")]
-        temp.field("attrs", &self.attrs().as_slice());
+        temp.field("attrs", &self.attrs());
         temp.finish()
     }
 }
@@ -572,6 +572,7 @@ impl LinesRequestBuilder {
 
                     attrs_num += 1;
                     if attrs_num as usize >= self.inner.inner.config.attrs.len() {
+                        lines_num += 1;
                         break 'outer;
                     }
                 }
