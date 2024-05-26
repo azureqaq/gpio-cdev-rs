@@ -57,4 +57,17 @@ pub(crate) mod helper {
             write!(f, "{}", self.to_string_lossy())
         }
     }
+
+    impl<const N: usize, T> From<T> for CString<N>
+    where
+        T: AsRef<str>,
+    {
+        fn from(value: T) -> Self {
+            let value = value.as_ref().as_bytes();
+            let len = value.len().min(N);
+            let mut buf = [b'\0'; N];
+            buf[..len].copy_from_slice(&value[..len]);
+            Self(buf)
+        }
+    }
 }

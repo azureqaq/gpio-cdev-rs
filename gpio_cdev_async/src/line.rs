@@ -185,6 +185,10 @@ pub struct LinesRequest {
 }
 
 impl LinesRequest {
+    pub fn builder() -> LinesRequestBuilder {
+        LinesRequestBuilder::new()
+    }
+
     pub fn offsets(&self) -> &[u32] {
         #[cfg(feature = "v1")]
         {
@@ -392,7 +396,7 @@ impl Debug for LineValues {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct LineValuesIterItem {
+pub struct LineValueItem {
     offset: u32,
     value: u8,
 }
@@ -410,13 +414,13 @@ impl<'a> LineValuesIter<'a> {
 }
 
 impl Iterator for LineValuesIter<'_> {
-    type Item = LineValuesIterItem;
+    type Item = LineValueItem;
 
     fn next(&mut self) -> Option<Self::Item> {
         while self.index < self.values.offsets.len() {
             self.index += 1;
             if let Some(value) = self.values.value_of_index(self.index - 1) {
-                return Some(LineValuesIterItem {
+                return Some(LineValueItem {
                     offset: self.values.offsets[self.index - 1],
                     value,
                 });
@@ -436,5 +440,54 @@ impl Clone for LineValuesIter<'_> {
             values: self.values,
             index: 0,
         }
+    }
+}
+
+pub struct LinesRequestBuilder {
+    inner: LinesRequest,
+    index: usize,
+    edge_dection: bool,
+}
+
+impl LinesRequestBuilder {
+    pub fn new() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+
+    pub fn set_consumer(mut self, consumer: impl AsRef<str>) -> Self {
+        #[cfg(feature = "v1")]
+        {
+            self.inner.inner.consumer_label = consumer.into();
+        }
+        #[cfg(feature = "v2")]
+        {
+            self.inner.inner.consumer = consumer.into();
+        }
+
+        self
+    }
+
+    pub fn set_flags(mut self, flags: LineFlags) -> Self {
+        #[cfg(feature = "v1")]
+        {
+            self.inner.inner.flags = flags.bits();
+        }
+        #[cfg(feature = "v2")]
+        {
+            self.inner.inner.config.flags = flags.bits();
+        }
+        self
+    }
+
+    #[cfg(feature = "v2")]
+    pub fn set_event_buffer_size(mut self, size: u32) -> Self {
+        self.inner.inner.event_buffer_size = size;
+        self
+    }
+}
+
+impl Default for LinesRequestBuilder {
+    fn default() -> Self {
+        Self::new()
     }
 }
