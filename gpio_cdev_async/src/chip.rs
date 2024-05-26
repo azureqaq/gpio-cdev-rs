@@ -7,7 +7,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{ffi, line::LineInfo, Result};
+use crate::{
+    ffi,
+    line::{LineInfo, LinesHandle, LinesRequest},
+    Result,
+};
 
 #[derive(Debug)]
 pub struct Chip {
@@ -54,6 +58,10 @@ impl Chip {
             ffi::v1::gpio_get_lineinfo_ioctl(self.file.as_raw_fd(), &mut inner)?;
             Ok(LineInfo { inner })
         }
+    }
+
+    pub fn get_lines(&self, request: LinesRequest) -> Result<LinesHandle> {
+        request.request(self)
     }
 }
 
