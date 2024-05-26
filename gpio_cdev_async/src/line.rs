@@ -174,6 +174,51 @@ impl LinesHandle {
         let mask = offsets_to_mask(self.offsets(), offsets);
         self.get_values_by_mask(mask)
     }
+
+    #[cfg(feature = "v2")]
+    fn set_values_by_mask(&self, mask: libc::c_ulong, bits: libc::c_ulong) -> Result<()> {
+        let mut data: ffi::v2::GpioV2LineValues = unsafe { std::mem::zeroed() };
+
+        data.mask = mask;
+        data.bits = bits;
+        ffi::v2::gpio_v2_line_set_values_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
+        Ok(())
+    }
+
+    pub fn set_values<I, T>(&self, values: I) -> Result<()>
+    where
+        I: IntoIterator<Item = T>,
+        T: Into<LineValueItem>,
+    {
+        #[cfg(feature = "v2")]
+        {
+            let mut mask = 0;
+            let mut bits = 0;
+            for LineValueItem { offset, value } in values.into_iter().map(Into::into) {
+                if let Some(index) = index_of_offset(&self.offsets, offset) {
+                    mask |= (1 << index);
+                    match value {
+                        0 => {}
+                        _ => {
+                            bits |= (1 << index);
+                        }
+                    }
+                }
+            }
+            self.set_values_by_mask(mask, bits)
+        }
+
+        #[cfg(feature = "v1")]
+        {
+            let mut data: ffi::v1::GpioHandleData = unsafe { std::mem::zeroed() };
+            for LineValueItem { offset, value } in values.into_iter().map(Into::into) {
+                if let Some(index) = index_of_offset(&self.offsets, offset) {
+                    data.values[index] = value;
+                }
+            }
+            Ok(())
+        }
+    }
 }
 
 #[repr(transparent)]
@@ -397,8 +442,14 @@ impl Debug for LineValues {
 
 #[derive(Debug, Clone, Copy)]
 pub struct LineValueItem {
-    offset: u32,
-    value: u8,
+    pub offset: u32,
+    pub value: u8,
+}
+
+impl From<(u32, u8)> for LineValueItem {
+    fn from((offset, value): (u32, u8)) -> Self {
+        Self { offset, value }
+    }
 }
 
 #[derive(Debug)]
@@ -479,10 +530,26 @@ impl LinesRequestBuilder {
         self
     }
 
+    pub fn set_offsets(mut self, offsets: impl AsRef<[u32]>) -> Self {
+        #[cfg(feature = "v2")]
+        {
+            let offsets = offsets.as_ref();
+            let len = offsets.len().min(self.inner.inner.offsets.len());
+            self.inner.inner.offsets[..len].copy_from_slice(&offsets[..len]);
+            self.inner.inner.num_lines = len as u32;
+        }
+        self
+    }
+
     #[cfg(feature = "v2")]
     pub fn set_event_buffer_size(mut self, size: u32) -> Self {
         self.inner.inner.event_buffer_size = size;
         self
+    }
+
+    pub fn build(self) -> Result<LinesRequest> {
+        // TODO: check config
+        Ok(self.inner)
     }
 }
 
