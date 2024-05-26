@@ -2,7 +2,7 @@ use bitflags::bitflags;
 
 use crate::ffi::common::{CString, Padding, GPIO_MAX_NAME_SIZE};
 
-const GPIOHANDLES_MAX: usize = 64;
+pub(crate) const GPIOHANDLES_MAX: usize = 64;
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
