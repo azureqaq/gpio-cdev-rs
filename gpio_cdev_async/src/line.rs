@@ -76,7 +76,7 @@ impl Debug for LineInfo {
         temp.field("name", &self.name());
         temp.field("consumer", &self.consumer());
         #[cfg(feature = "v2")]
-        temp.field("attrs", &self.attrs());
+        temp.field("attrs", &self.attrs().as_slice());
         temp.finish()
     }
 }
@@ -115,10 +115,18 @@ impl Default for LineAttribute {
     }
 }
 
-#[derive(Debug)]
 pub struct LinesHandle {
     offsets: TinyVec<[u32; 8]>,
     req_fd: OwnedFd,
+}
+
+impl Debug for LinesHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LinesHandle")
+            .field("offsets", &self.offsets.as_slice())
+            .field("req_fd", &self.req_fd)
+            .finish()
+    }
 }
 
 impl LinesHandle {
@@ -377,9 +385,9 @@ impl LineValues {
 
 impl Debug for LineValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // f.debug_struct("LineValues")
-        //     .field("offsets", &self.offsets.as_slice())
-        todo!()
+        f.debug_map()
+            .entries(self.values_iter().map(|v| (v.offset, v.value)))
+            .finish()
     }
 }
 
