@@ -185,24 +185,19 @@ impl LinesHandle {
         Ok(())
     }
 
-    pub fn set_values<I, T>(&self, values: I) -> Result<()>
+    pub fn set_values<I>(&self, offsets: I) -> Result<()>
     where
-        I: IntoIterator<Item = T>,
-        T: Into<LineValueItem>,
+        I: IntoIterator<Item = u32>,
     {
         #[cfg(feature = "v2")]
         {
             let mut mask = 0;
             let mut bits = 0;
-            for LineValueItem { offset, value } in values.into_iter().map(Into::into) {
+            for offset in offsets.into_iter() {
                 if let Some(index) = index_of_offset(&self.offsets, offset) {
-                    mask |= (1 << index);
-                    match value {
-                        0 => {}
-                        _ => {
-                            bits |= (1 << index);
-                        }
-                    }
+                    let flag = 1 << index;
+                    mask |= flag;
+                    bits |= flag;
                 }
             }
             self.set_values_by_mask(mask, bits)
@@ -211,9 +206,9 @@ impl LinesHandle {
         #[cfg(feature = "v1")]
         {
             let mut data: ffi::v1::GpioHandleData = unsafe { std::mem::zeroed() };
-            for LineValueItem { offset, value } in values.into_iter().map(Into::into) {
+            for offset in offsets.into_iter() {
                 if let Some(index) = index_of_offset(&self.offsets, offset) {
-                    data.values[index] = value;
+                    data.values[index] = 1;
                 }
             }
             Ok(())
