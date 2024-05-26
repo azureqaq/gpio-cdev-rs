@@ -520,6 +520,8 @@ impl LinesRequestBuilder {
         }
         #[cfg(feature = "v2")]
         {
+            self.edge_dection = flags.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_RISING)
+                || flags.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_FALLING);
             self.inner.inner.config.flags = flags.bits();
         }
         self
