@@ -150,7 +150,7 @@ impl LinesHandle {
         {
             let mut mask = 0;
             for index in 0..self.offsets.len() {
-                mask |= (1 << index);
+                mask |= 1 << index;
             }
             self.get_values_by_mask(mask)
         }
@@ -380,12 +380,13 @@ impl Debug for LinesRequest {
     }
 }
 
+#[cfg(feature = "v2")]
 fn offsets_to_mask(offsets: &[u32], target_offsets: impl AsRef<[u32]>) -> libc::c_ulong {
     let target_offsets = target_offsets.as_ref();
     let mut mask = 0;
     for (index, &offset) in offsets.iter().enumerate() {
         if target_offsets.contains(&offset) {
-            mask |= (1 << index);
+            mask |= 1 << index;
         }
     }
 
