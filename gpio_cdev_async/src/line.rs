@@ -584,7 +584,20 @@ impl LinesRequestBuilder {
 
         #[cfg(feature = "v1")]
         {
-            todo!()
+            let mut lines_num = 0;
+
+            for config in configs
+                .into_iter()
+                .map(Into::<OffsetRequestConfig>::into)
+                .take(self.inner.inner.lineoffsets.len())
+            {
+                self.inner.inner.lineoffsets[lines_num as usize] = config.offset;
+                self.inner.inner.default_values[lines_num as usize] =
+                    config.default_value.unwrap_or_default();
+                lines_num += 1;
+            }
+
+            self.inner.inner.lines = lines_num;
         }
 
         self
