@@ -435,8 +435,8 @@ impl LineValue {
         }
     }
 
-    pub fn values_iter(&self) -> LineValuesIter<'_> {
-        LineValuesIter::new(self)
+    pub fn values_iter(&self) -> LineValueIter<'_> {
+        LineValueIter::new(self)
     }
 }
 
@@ -476,18 +476,18 @@ impl From<u32> for LineValueItem {
 }
 
 #[derive(Debug)]
-pub struct LineValuesIter<'a> {
+pub struct LineValueIter<'a> {
     values: &'a LineValue,
     index: usize,
 }
 
-impl<'a> LineValuesIter<'a> {
+impl<'a> LineValueIter<'a> {
     pub fn new(values: &'a LineValue) -> Self {
         Self { values, index: 0 }
     }
 }
 
-impl Iterator for LineValuesIter<'_> {
+impl Iterator for LineValueIter<'_> {
     type Item = LineValueItem;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -508,7 +508,7 @@ impl Iterator for LineValuesIter<'_> {
     }
 }
 
-impl Clone for LineValuesIter<'_> {
+impl Clone for LineValueIter<'_> {
     fn clone(&self) -> Self {
         Self {
             values: self.values,
