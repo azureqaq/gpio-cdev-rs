@@ -636,13 +636,13 @@ pub struct PinConfig {
     #[cfg(feature = "v1")]
     default_value: Option<u8>,
     #[cfg(feature = "v2")]
-    line_attr: Vec<OffsetAttribute>,
+    line_attr: Vec<PinAttribute>,
 }
 
 #[cfg(feature = "v2")]
 impl<T> From<(u32, T)> for PinConfig
 where
-    T: Into<Vec<OffsetAttribute>>,
+    T: Into<Vec<PinAttribute>>,
 {
     fn from(value: (u32, T)) -> Self {
         Self {
@@ -683,14 +683,14 @@ impl From<u32> for PinConfig {
 
 #[derive(Debug, Clone, Copy)]
 #[cfg(feature = "v2")]
-pub enum OffsetAttribute {
+pub enum PinAttribute {
     Flags(LineFlags),
     Value(u8),
     DebouncePeriodUs(u32),
 }
 
 #[cfg(feature = "v2")]
-impl OffsetAttribute {
+impl PinAttribute {
     fn into_line_attribute(self, index: u32) -> ffi::v2::GpioV2LineAttribute {
         match self {
             Self::Value(v) => ffi::v2::GpioV2LineAttribute {
@@ -719,21 +719,21 @@ impl OffsetAttribute {
 }
 
 #[cfg(feature = "v2")]
-impl From<LineFlags> for OffsetAttribute {
+impl From<LineFlags> for PinAttribute {
     fn from(value: LineFlags) -> Self {
         Self::Flags(value)
     }
 }
 
 #[cfg(feature = "v2")]
-impl From<bool> for OffsetAttribute {
+impl From<bool> for PinAttribute {
     fn from(value: bool) -> Self {
         Self::Value(if value { 1 } else { 0 })
     }
 }
 
 #[cfg(feature = "v2")]
-impl From<u32> for OffsetAttribute {
+impl From<u32> for PinAttribute {
     fn from(value: u32) -> Self {
         Self::DebouncePeriodUs(value)
     }
@@ -788,7 +788,7 @@ impl PinRequest {
 
         #[cfg(feature = "v2")]
         let line_request_builder =
-            line_request_builder.set_offsets([(offset, [OffsetAttribute::Value(default_value)])]);
+            line_request_builder.set_offsets([(offset, [PinAttribute::Value(default_value)])]);
 
         #[cfg(feature = "v1")]
         let line_request_builder = line_request_builder.set_offsets([(offset, default_value)]);
