@@ -104,15 +104,6 @@ impl From<&ffi::v2::GpioV2LineAttribute> for LineAttribute {
     }
 }
 
-#[cfg(feature = "v2")]
-impl Default for LineAttribute {
-    /// This implementation is solely to meet the requirements of `tinyvec`.
-    /// Do not use it.
-    fn default() -> Self {
-        Self::Values(0)
-    }
-}
-
 pub struct LineHandle {
     offsets: Vec<u32>,
     req_fd: OwnedFd,
@@ -317,8 +308,6 @@ impl LineRequest {
             .unwrap_or_default()
     }
 
-    /// NOT Consider flags OUTPUT
-    // FIXME: Ambiguous return value
     pub fn default_value_of_offset(&self, offset: u32) -> Option<u8> {
         #[cfg(feature = "v1")]
         {
