@@ -183,34 +183,38 @@ impl LinesHandle {
         Ok(())
     }
 
-    pub fn set_values<I>(&self, offsets: I) -> Result<()>
+    #[cfg(feature = "v2")]
+    pub fn set_values<I, T>(&self, offsets: I) -> Result<()>
     where
-        I: IntoIterator<Item = u32>,
+        I: IntoIterator<Item = T>,
+        T: Into<LineValueItem>,
     {
-        #[cfg(feature = "v2")]
-        {
-            let mut mask = 0;
-            let mut bits = 0;
-            for offset in offsets.into_iter() {
-                if let Some(index) = index_of_offset(&self.offsets, offset) {
-                    let flag = 1 << index;
-                    mask |= flag;
+        let mut mask = 0;
+        let mut bits = 0;
+        for LineValueItem { offset, value } in offsets.into_iter().map(Into::into) {
+            if let Some(index) = index_of_offset(&self.offsets, offset) {
+                let flag = 1 << index;
+                mask |= flag;
+                if value != 0 {
                     bits |= flag;
                 }
             }
-            self.set_values_by_mask(mask, bits)
         }
+        self.set_values_by_mask(mask, bits)
+    }
 
-        #[cfg(feature = "v1")]
-        {
-            let mut data: ffi::v1::GpioHandleData = unsafe { std::mem::zeroed() };
-            for offset in offsets.into_iter() {
-                if let Some(index) = index_of_offset(&self.offsets, offset) {
-                    data.values[index] = 1;
-                }
+    #[cfg(feature = "v1")]
+    pub fn set_value<I>(&self, offsets: I) -> Result<()>
+    where
+        I: IntoIterator<Item = u32>,
+    {
+        let mut data: ffi::v1::GpioHandleData = unsafe { std::mem::zeroed() };
+        for offset in offsets.into_iter() {
+            if let Some(index) = index_of_offset(&self.offsets, offset) {
+                data.values[index] = 1;
             }
-            Ok(())
         }
+        Ok(())
     }
 }
 
@@ -455,6 +459,21 @@ pub struct LineValueItem {
 impl From<(u32, u8)> for LineValueItem {
     fn from((offset, value): (u32, u8)) -> Self {
         Self { offset, value }
+    }
+}
+
+impl From<(u32, bool)> for LineValueItem {
+    fn from((offset, value): (u32, bool)) -> Self {
+        Self {
+            offset,
+            value: if value { 1 } else { 0 },
+        }
+    }
+}
+
+impl From<u32> for LineValueItem {
+    fn from(offset: u32) -> Self {
+        Self { offset, value: 1 }
     }
 }
 
