@@ -521,8 +521,6 @@ impl Clone for LineValuesIter<'_> {
 
 pub struct LinesRequestBuilder {
     inner: LinesRequest,
-    #[cfg(feature = "v2")]
-    edge_dection: bool,
 }
 
 impl LinesRequestBuilder {
@@ -550,8 +548,6 @@ impl LinesRequestBuilder {
         }
         #[cfg(feature = "v2")]
         {
-            self.edge_dection = flags.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_RISING)
-                || flags.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_FALLING);
             self.inner.inner.config.flags = flags.bits();
         }
         self
@@ -580,12 +576,6 @@ impl LinesRequestBuilder {
                 for attr in config.line_attr {
                     let attr_config = &mut self.inner.inner.config.attrs[attrs_num as usize];
                     attr_config.mask = 1 << lines_num;
-
-                    // check edge_dection
-                    if let LineAttribute::Flags(f) = attr {
-                        self.edge_dection = f.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_RISING)
-                            | f.contains(LineFlags::GPIO_V2_LINE_FLAG_EDGE_FALLING);
-                    }
 
                     attr_config.attr = attr.into_line_attribute(lines_num);
 
