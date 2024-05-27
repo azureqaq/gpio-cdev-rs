@@ -9,7 +9,7 @@ use std::{
 
 use crate::{
     ffi,
-    line::{LineHandle, LineInfo, LineRequest},
+    line::{LineHandle, LineInfo, LineRequest, PinHandle, PinRequest},
     Result,
 };
 
@@ -60,7 +60,11 @@ impl Chip {
         }
     }
 
-    pub fn get_lines(&self, request: LineRequest) -> Result<LineHandle> {
+    pub fn get_line(&self, request: LineRequest) -> Result<LineHandle> {
+        request.request(self)
+    }
+
+    pub fn get_pin(&self, request: PinRequest) -> Result<PinHandle> {
         request.request(self)
     }
 }
