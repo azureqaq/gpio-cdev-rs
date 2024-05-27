@@ -554,7 +554,7 @@ impl LineRequestBuilder {
     pub fn set_offsets<I, T>(mut self, configs: I) -> Self
     where
         I: IntoIterator<Item = T>,
-        T: Into<OffsetConfig>,
+        T: Into<PinConfig>,
     {
         #[cfg(feature = "v2")]
         {
@@ -565,7 +565,7 @@ impl LineRequestBuilder {
 
             'outer: for config in configs
                 .into_iter()
-                .map(Into::<OffsetConfig>::into)
+                .map(Into::<PinConfig>::into)
                 .take(self.inner.inner.offsets.len())
             {
                 // set offset
@@ -597,7 +597,7 @@ impl LineRequestBuilder {
 
             for config in configs
                 .into_iter()
-                .map(Into::<OffsetConfig>::into)
+                .map(Into::<PinConfig>::into)
                 .take(self.inner.inner.lineoffsets.len())
             {
                 self.inner.inner.lineoffsets[lines_num as usize] = config.offset;
@@ -631,7 +631,7 @@ impl Default for LineRequestBuilder {
 }
 
 #[derive(Debug)]
-pub struct OffsetConfig {
+pub struct PinConfig {
     offset: u32,
     #[cfg(feature = "v1")]
     default_value: Option<u8>,
@@ -640,7 +640,7 @@ pub struct OffsetConfig {
 }
 
 #[cfg(feature = "v2")]
-impl<T> From<(u32, T)> for OffsetConfig
+impl<T> From<(u32, T)> for PinConfig
 where
     T: Into<Vec<OffsetAttribute>>,
 {
@@ -653,7 +653,7 @@ where
 }
 
 #[cfg(feature = "v1")]
-impl From<(u32, u8)> for OffsetConfig {
+impl From<(u32, u8)> for PinConfig {
     fn from((offset, default_value): (u32, u8)) -> Self {
         Self {
             offset,
@@ -662,7 +662,7 @@ impl From<(u32, u8)> for OffsetConfig {
     }
 }
 
-impl From<u32> for OffsetConfig {
+impl From<u32> for PinConfig {
     fn from(value: u32) -> Self {
         #[cfg(feature = "v2")]
         {
@@ -740,11 +740,11 @@ impl From<u32> for OffsetAttribute {
 }
 
 #[derive(Debug)]
-pub struct OffsetHandle {
+pub struct PinHandle {
     line_handle: LineHandle,
 }
 
-impl OffsetHandle {
+impl PinHandle {
     pub fn offset(&self) -> u32 {
         self.line_handle.offsets[0]
     }
@@ -771,11 +771,11 @@ impl OffsetHandle {
 }
 
 #[derive(Debug)]
-pub struct OffsetRequest {
+pub struct PinRequest {
     line_request: LineRequest,
 }
 
-impl OffsetRequest {
+impl PinRequest {
     pub fn new(
         offset: u32,
         flags: HandleFlags,
@@ -815,12 +815,12 @@ impl OffsetRequest {
     }
 }
 
-impl OffsetRequest {
-    pub fn request(self, chip: &Chip) -> Result<OffsetHandle> {
+impl PinRequest {
+    pub fn request(self, chip: &Chip) -> Result<PinHandle> {
         debug_assert_eq!(self.line_request.offsets().len(), 1);
         // TODO: check config?
         self.line_request
             .request(chip)
-            .map(|line_handle| OffsetHandle { line_handle })
+            .map(|line_handle| PinHandle { line_handle })
     }
 }
