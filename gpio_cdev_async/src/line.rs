@@ -729,3 +729,24 @@ impl LineAttribute {
         }
     }
 }
+
+#[cfg(feature = "v2")]
+impl From<LineFlags> for LineAttribute {
+    fn from(value: LineFlags) -> Self {
+        Self::Flags(value)
+    }
+}
+
+#[cfg(feature = "v2")]
+impl From<bool> for LineAttribute {
+    fn from(value: bool) -> Self {
+        Self::Value(if value { 1 } else { 0 })
+    }
+}
+
+#[cfg(feature = "v2")]
+impl From<u32> for LineAttribute {
+    fn from(value: u32) -> Self {
+        Self::DebouncePeriodUs(value)
+    }
+}
