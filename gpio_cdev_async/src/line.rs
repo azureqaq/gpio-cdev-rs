@@ -111,7 +111,7 @@ pub struct LineHandle {
 
 impl Debug for LineHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("LinesHandle")
+        f.debug_struct("LineHandle")
             .field("offsets", &self.offsets.as_slice())
             .field("req_fd", &self.req_fd)
             .finish()
@@ -361,7 +361,7 @@ impl LineRequest {
 
 impl Debug for LineRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut res = f.debug_struct("LinesRequest");
+        let mut res = f.debug_struct("LineRequest");
         res.field("offsets", &self.offsets());
         res.field("consumer", &self.consumer());
         res.field("flags", &self.flags());
