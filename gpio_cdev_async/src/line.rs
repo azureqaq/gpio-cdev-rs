@@ -132,16 +132,12 @@ impl LineHandle {
         &self.offsets
     }
 
-    pub fn index_of_offset(&self, offset: u32) -> Option<usize> {
-        index_of_offset(&self.offsets, offset)
-    }
-
-    pub fn get_values(&self) -> Result<LineValues> {
+    pub fn get_values(&self) -> Result<LineValue> {
         #[cfg(feature = "v1")]
         {
             let mut data: ffi::v1::GpioHandleData = unsafe { std::mem::zeroed() };
             ffi::v1::gpiohandle_get_line_values_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
-            Ok(LineValues {
+            Ok(LineValue {
                 inner: data,
                 offsets: self.offsets.clone(),
             })
@@ -157,18 +153,18 @@ impl LineHandle {
     }
 
     #[cfg(feature = "v2")]
-    pub fn get_values_by_mask(&self, mask: libc::c_ulong) -> Result<LineValues> {
+    pub fn get_values_by_mask(&self, mask: libc::c_ulong) -> Result<LineValue> {
         let mut data: ffi::v2::GpioV2LineValues = unsafe { std::mem::zeroed() };
         data.mask = mask;
         ffi::v2::gpio_v2_line_get_values_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
-        Ok(LineValues {
+        Ok(LineValue {
             inner: data,
             offsets: self.offsets.clone(),
         })
     }
 
     #[cfg(feature = "v2")]
-    pub fn get_values_by_offsets(&self, offsets: impl AsRef<[u32]>) -> Result<LineValues> {
+    pub fn get_values_by_offsets(&self, offsets: impl AsRef<[u32]>) -> Result<LineValue> {
         let mask = offsets_to_mask(self.offsets(), offsets);
         self.get_values_by_mask(mask)
     }
@@ -204,7 +200,7 @@ impl LineHandle {
     }
 
     #[cfg(feature = "v1")]
-    pub fn set_value<I>(&self, offsets: I) -> Result<()>
+    pub fn set_values<I>(&self, offsets: I) -> Result<()>
     where
         I: IntoIterator<Item = u32>,
     {
@@ -401,7 +397,7 @@ fn index_of_offset(offsets: &[u32], target: u32) -> Option<usize> {
     offsets.iter().position(|&o| o == target)
 }
 
-pub struct LineValues {
+pub struct LineValue {
     #[cfg(feature = "v2")]
     inner: ffi::v2::GpioV2LineValues,
     #[cfg(feature = "v1")]
@@ -409,7 +405,7 @@ pub struct LineValues {
     offsets: Vec<u32>,
 }
 
-impl LineValues {
+impl LineValue {
     pub fn value_of_offset(&self, offset: u32) -> Option<u8> {
         let index = index_of_offset(&self.offsets, offset)?;
         self.value_of_index(index)
@@ -442,7 +438,7 @@ impl LineValues {
     }
 }
 
-impl Debug for LineValues {
+impl Debug for LineValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_map()
             .entries(self.values_iter().map(|v| (v.offset, v.value)))
@@ -479,12 +475,12 @@ impl From<u32> for LineValueItem {
 
 #[derive(Debug)]
 pub struct LineValuesIter<'a> {
-    values: &'a LineValues,
+    values: &'a LineValue,
     index: usize,
 }
 
 impl<'a> LineValuesIter<'a> {
-    pub fn new(values: &'a LineValues) -> Self {
+    pub fn new(values: &'a LineValue) -> Self {
         Self { values, index: 0 }
     }
 }
@@ -738,5 +734,32 @@ impl From<bool> for OffsetAttribute {
 impl From<u32> for OffsetAttribute {
     fn from(value: u32) -> Self {
         Self::DebouncePeriodUs(value)
+    }
+}
+
+#[derive(Debug)]
+pub struct OffsetHandle {
+    line_handle: LineHandle,
+}
+
+impl OffsetHandle {
+    pub fn offset(&self) -> u32 {
+        self.line_handle.offsets[0]
+    }
+
+    pub fn get_value(&self) -> Result<u8> {
+        let values = self.line_handle.get_values()?;
+        Ok(values.value_of_index(0).unwrap())
+    }
+
+    pub fn set_value(&self, value: u8) -> Result<()> {
+        #[cfg(feature = "v2")]
+        {
+            self.line_handle.set_values([(self.offset(), value)])
+        }
+        #[cfg(feature = "v1")]
+        {
+            self.line_handle.set_values([self.offset()])
+        }
     }
 }
