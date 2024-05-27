@@ -317,6 +317,7 @@ impl LineRequest {
     }
 
     /// NOT Consider flags OUTPUT
+    // FIXME: Ambiguous return value
     pub fn default_value_of_offset(&self, offset: u32) -> Option<u8> {
         #[cfg(feature = "v1")]
         {
@@ -761,5 +762,60 @@ impl OffsetHandle {
         {
             self.line_handle.set_values([self.offset()])
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct OffsetRequest {
+    line_request: LineRequest,
+}
+
+impl OffsetRequest {
+    pub fn new(
+        offset: u32,
+        flags: LineFlags,
+        default_value: u8,
+        consumer: impl AsRef<str>,
+    ) -> Self {
+        let line_request_builder = LineRequestBuilder::new()
+            .set_flags(flags)
+            .set_consumer(consumer);
+
+        #[cfg(feature = "v2")]
+        let line_request_builder =
+            line_request_builder.set_offsets([(offset, [OffsetAttribute::Value(default_value)])]);
+
+        #[cfg(feature = "v1")]
+        let line_request_builder = line_request_builder.set_offsets([(offset, default_value)]);
+
+        Self {
+            line_request: line_request_builder.build().unwrap(),
+        }
+    }
+
+    pub fn offset(&self) -> u32 {
+        self.line_request.offsets()[0]
+    }
+
+    pub fn consumer(&self) -> Cow<'_, str> {
+        self.line_request.consumer()
+    }
+
+    pub fn flags(&self) -> HandleFlags {
+        self.line_request.flags()
+    }
+
+    pub fn default_value(&self) -> Option<u8> {
+        self.line_request.default_value_of_offset(0)
+    }
+}
+
+impl OffsetRequest {
+    pub fn request(self, chip: &Chip) -> Result<OffsetHandle> {
+        debug_assert_eq!(self.line_request.offsets().len(), 1);
+        // TODO: check config?
+        self.line_request
+            .request(chip)
+            .map(|line_handle| OffsetHandle { line_handle })
     }
 }
