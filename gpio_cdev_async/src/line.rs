@@ -210,6 +210,7 @@ impl LineHandle {
                 data.values[index] = 1;
             }
         }
+        ffi::v1::gpiohandle_set_line_values_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
         Ok(())
     }
 }
@@ -538,7 +539,7 @@ impl LineRequestBuilder {
         self
     }
 
-    pub fn set_flags(mut self, flags: LineFlags) -> Self {
+    pub fn set_flags(mut self, flags: HandleFlags) -> Self {
         #[cfg(feature = "v1")]
         {
             self.inner.inner.flags = flags.bits();
@@ -760,7 +761,11 @@ impl OffsetHandle {
         }
         #[cfg(feature = "v1")]
         {
-            self.line_handle.set_values([self.offset()])
+            if value != 0 {
+                self.line_handle.set_values([self.offset()])
+            } else {
+                self.line_handle.set_values([])
+            }
         }
     }
 }
@@ -773,7 +778,7 @@ pub struct OffsetRequest {
 impl OffsetRequest {
     pub fn new(
         offset: u32,
-        flags: LineFlags,
+        flags: HandleFlags,
         default_value: u8,
         consumer: impl AsRef<str>,
     ) -> Self {
