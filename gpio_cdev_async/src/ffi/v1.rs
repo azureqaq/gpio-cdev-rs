@@ -26,13 +26,15 @@ bitflags! {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct GpioLineInfo {
-    /// the local offset on this GPIO devices, fill this in when requesting the line infomation from the kernel.
+    /// the local offset on this GPIO devices, fill this in
+    /// when requesting the line infomation from the kernel.
     pub(crate) line_offset: u32,
     /// the [`GpioLineFlag`] of the GPIO line.
     pub(crate) flags: u32,
     /// the name of the GPIO line.
     pub(crate) name: CString<GPIO_MAX_NAME_SIZE>,
-    /// a functional name for the consumer of this GPIO line as set by whatever is using it.
+    /// a functional name for the consumer of this GPIO line
+    /// as set by whatever is using it.
     pub(crate) consumer: CString<GPIO_MAX_NAME_SIZE>,
 }
 
@@ -78,17 +80,20 @@ bitflags! {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct GpioHandleRequest {
-    /// an array of desired GPIO line offsets, specified by offset index for the associated GPIO device.
+    /// an array of desired GPIO line offsets, specified
+    /// by offset index for the associated GPIO device.
     pub(crate) lineoffsets: [u32; GPIOHANDLES_MAX],
     /// desired [`GpioHandleFlags`] for the GPIO handle.
     pub(crate) flags: u32,
-    /// if `REQUEST_OUTPUT` is set for a requested line, this specifies the default output value, should be 0 (inactive) or 1 (active).
+    /// if `REQUEST_OUTPUT` is set for a requested line,
+    /// this specifies the default output value, should be 0 (inactive) or 1 (active).
     pub(crate) default_values: [u8; GPIOHANDLES_MAX],
     /// a desired consumer label for the GPIO line(s).
     pub(crate) consumer_label: CString<GPIO_MAX_NAME_SIZE>,
     /// number of lines requested.
     pub(crate) lines: u32,
-    /// after a successful request, this is the file descriptor for the requested GPIO handle.
+    /// after a successful request, this is the file
+    /// descriptor for the requested GPIO handle.
     pub(crate) fd: libc::c_int,
 }
 
@@ -98,7 +103,9 @@ pub(crate) struct GpioHandleRequest {
 pub(crate) struct GpioHandleConfig {
     /// the desired [`GpioHandleFlags`] for the GPIO handle.
     pub(crate) flags: u32,
-    /// if `REQUEST_OUTPUT` is set for a requested line, this specifies the default output value, should be 0 (inactive) or 1 (active).
+    /// if `REQUEST_OUTPUT` is set for a requested line,
+    /// this specifies the default output value, should
+    /// be 0 (inactive) or 1 (active).
     pub(crate) default_values: [u8; GPIOHANDLES_MAX],
     pub(crate) padding: Padding<u32, 4>,
 }
@@ -107,8 +114,10 @@ pub(crate) struct GpioHandleConfig {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct GpioHandleData {
-    /// when getting the state of lines this contains the current state of a line, when setting the state of lines these should contain
-    /// the desired target state. States are 0 (inactive) or 1 (active).
+    /// when getting the state of lines this contains the
+    /// current state of a line, when setting the state of
+    /// lines these should contain desired target state.
+    /// States are 0 (inactive) or 1 (active).
     pub(crate) values: [u8; GPIOHANDLES_MAX],
 }
 
@@ -126,7 +135,8 @@ bitflags! {
 #[repr(C)]
 #[derive(Debug)]
 pub(crate) struct GpioEventRequest {
-    /// the desired line to subscribe to events from, specified by offset index for the associated GPIO device.
+    /// the desired line to subscribe to events from,
+    /// specified by offset index for the associated GPIO device.
     pub(crate) lineoffset: u32,
     /// desired [`GpioHandleFlags`] flags for the desired GPIO line
     pub(crate) handleflags: u32,

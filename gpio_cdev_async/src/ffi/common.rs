@@ -66,6 +66,7 @@ pub(crate) mod helper {
             let value = value.as_ref().as_bytes();
             let len = value.len().min(N);
             let mut buf = [b'\0'; N];
+            // SAFETY: `len` is always less than or equal to `N`
             buf[..len].copy_from_slice(&value[..len]);
             Self(buf)
         }
