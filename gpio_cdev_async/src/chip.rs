@@ -117,6 +117,30 @@ impl Chip {
     pub fn get_pin(&self, request: PinRequest) -> Result<PinHandle> {
         request.request(self)
     }
+
+    pub fn get_lineinfo_watch(&self, offset: u32) -> Result<LineInfo> {
+        #[cfg(feature = "v2")]
+        {
+            use ffi::v2::GpioV2LineInfo;
+            let mut inner: GpioV2LineInfo = unsafe { std::mem::zeroed() };
+            inner.offset = offset;
+            ffi::v2::gpio_v2_get_lineinfo_watch_ioctl(self.file.as_raw_fd(), &mut inner)?;
+            Ok(LineInfo { inner })
+        }
+        #[cfg(feature = "v1")]
+        {
+            use ffi::v1::GpioLineInfo;
+            let mut inner: GpioLineInfo = unsafe { std::mem::zeroed() };
+            inner.line_offset = offset;
+            ffi::v1::gpio_get_lineinfo_watch_ioctl(self.file.as_raw_fd(), &mut inner)?;
+            Ok(LineInfo { inner })
+        }
+    }
+
+    pub fn get_lineinfo_unwatch(&self, mut offset: u32) -> Result<()> {
+        ffi::common::gpio_get_lineinfo_unwatch_ioctl(self.file.as_raw_fd(), &mut offset)?;
+        Ok(())
+    }
 }
 
 /// Represents the information of a GPIO chip.
