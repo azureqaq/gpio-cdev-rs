@@ -39,7 +39,7 @@ crate::macros::wrap_ioctl!(
     crate::error::IoctlKind::GetLineInfo
 );
 
-pub(crate) mod helper {
+mod helper {
     use std::{borrow::Cow, ffi::CStr, fmt::Display};
 
     use super::CString;

@@ -41,7 +41,7 @@ pub(crate) struct GpioLineInfo {
 /// Possible line status change events.
 #[repr(u32)]
 #[derive(Debug)]
-pub(crate) enum GpioLineChangedType {
+pub enum GpioLineChangedType {
     Requested = 1,
     Released = 2,
     Config = 3,
@@ -243,3 +243,17 @@ crate::macros::wrap_ioctl!(
     ),
     crate::error::IoctlKind::GetLineInfo
 );
+
+mod helper {
+    use super::*;
+
+    impl From<u32> for GpioLineChangedType {
+        fn from(value: u32) -> Self {
+            match value {
+                1 => Self::Requested,
+                2 => Self::Released,
+                _ => Self::Config,
+            }
+        }
+    }
+}

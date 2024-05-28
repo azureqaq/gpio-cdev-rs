@@ -12,6 +12,7 @@ compile_error!("One of the features `v1` or `v2` must be enabled.");
 
 pub mod chip;
 mod error;
+pub mod event;
 mod ffi;
 pub mod line;
 mod macros;

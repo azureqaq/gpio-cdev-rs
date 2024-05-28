@@ -150,7 +150,7 @@ pub(crate) struct GpioV2LineInfo {
 /// [`GpioV2LineInfoChanged`] event type
 #[derive(Debug)]
 #[repr(u32)]
-pub(crate) enum GpioV2LineChangedType {
+pub enum GpioV2LineChangedType {
     Requested = 1,
     Released = 2,
     Config = 3,
@@ -266,7 +266,7 @@ crate::macros::wrap_ioctl!(
     crate::error::IoctlKind::SetValues
 );
 
-pub(crate) mod helper {
+mod helper {
     use super::*;
 
     impl From<u32> for GpioV2LineAttrId {
@@ -294,6 +294,16 @@ pub(crate) mod helper {
                     },
                 )
                 .finish()
+        }
+    }
+
+    impl From<u32> for GpioV2LineChangedType {
+        fn from(value: u32) -> Self {
+            match value {
+                1 => Self::Requested,
+                2 => Self::Released,
+                _ => Self::Config,
+            }
         }
     }
 }
