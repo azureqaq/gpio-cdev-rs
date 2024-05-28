@@ -45,7 +45,7 @@ impl LineInfoChanged {
     pub fn read(chip: &Chip, buf: &mut [LineInfoChanged]) -> Result<usize> {
         const T_LEN: usize = std::mem::size_of::<LineInfoChanged>();
         let ptr = std::ptr::addr_of_mut!(*buf) as *mut LineInfoChanged as *mut libc::c_void;
-        match unsafe { libc::read(chip.file.as_raw_fd(), ptr, T_LEN * 8) } {
+        match unsafe { libc::read(chip.file.as_raw_fd(), ptr, T_LEN * buf.len()) } {
             -1 => Err(crate::error::ioctl_error(
                 crate::IoctlKind::GetLineEvent,
                 nix::Error::last(),
@@ -54,7 +54,7 @@ impl LineInfoChanged {
                 debug_assert!(n >= 0);
                 let n = n.unsigned_abs();
                 debug_assert!(n % T_LEN == 0);
-                Ok(n)
+                Ok(n / T_LEN)
             }
         }
     }
