@@ -11,3 +11,5 @@ pub mod line;
 mod macros;
 
 pub use error::{Error, IoctlKind, Result};
+
+// TODO: Implement async and event support for GPIO devices
