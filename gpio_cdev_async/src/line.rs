@@ -143,6 +143,25 @@ impl LineHandle {
         }
     }
 
+    pub fn update_config(&self, config: LineRequest) -> Result<()> {
+        debug_assert_eq!(config.offsets(), self.offsets());
+        #[cfg(feature = "v2")]
+        {
+            let mut data = config.inner.config;
+            ffi::v2::gpio_v2_line_set_config_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
+        }
+        #[cfg(feature = "v1")]
+        {
+            let mut data = ffi::v1::GpioHandleConfig {
+                flags: config.flags().bits(),
+                default_values: config.inner.default_values,
+                padding: ffi::common::Padding([0; 4]),
+            };
+            ffi::v1::gpiohandle_set_config_ioctl(self.req_fd.as_raw_fd(), &mut data)?;
+        }
+        Ok(())
+    }
+
     #[cfg(feature = "v2")]
     pub fn get_values_by_mask(&self, mask: libc::c_ulong) -> Result<LineValue> {
         let mut data: ffi::v2::GpioV2LineValues = unsafe { std::mem::zeroed() };
