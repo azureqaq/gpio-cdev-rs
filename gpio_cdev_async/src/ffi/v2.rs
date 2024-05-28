@@ -54,16 +54,7 @@ pub(crate) union Union {
     pub(crate) debounce_period_us: u32,
 }
 
-impl Debug for Union {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Union")
-            .field("value", &unsafe { self.flags })
-            .finish()
-    }
-}
-
 /// A configurable attribute of a line
-#[derive(Debug)]
 #[repr(C)]
 pub(crate) struct GpioV2LineAttribute {
     /// attribute identifier with value from [`GpioV2LineAttrId`]
@@ -286,6 +277,23 @@ pub(crate) mod helper {
                 2 => Self::OutputValues,
                 _ => Self::Debounce,
             }
+        }
+    }
+
+    impl Debug for GpioV2LineAttribute {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let id = GpioV2LineAttrId::from(self.id);
+            f.debug_struct("GpioV2LineAttribute")
+                .field("id", &id)
+                .field(
+                    "value",
+                    &match id {
+                        GpioV2LineAttrId::Flags => unsafe { self.u.flags },
+                        GpioV2LineAttrId::OutputValues => unsafe { self.u.values },
+                        GpioV2LineAttrId::Debounce => unsafe { self.u.debounce_period_us.into() },
+                    },
+                )
+                .finish()
         }
     }
 }
