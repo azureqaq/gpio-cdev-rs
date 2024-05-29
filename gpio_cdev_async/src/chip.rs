@@ -141,6 +141,8 @@ impl Chip {
         ffi::common::gpio_get_lineinfo_unwatch_ioctl(self.file.as_raw_fd(), &mut offset)?;
         Ok(())
     }
+
+    // pub fn
 }
 
 /// Represents the information of a GPIO chip.

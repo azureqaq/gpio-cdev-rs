@@ -1,11 +1,11 @@
 pub(crate) const GPIO_MAX_NAME_SIZE: usize = 32;
 pub(crate) const GPIO_IOC_MAGIC: u8 = 0xB4;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(transparent)]
 pub(crate) struct Padding<T, const N: usize>(pub(crate) [T; N]);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[repr(transparent)]
 pub(crate) struct CString<const N: usize>(pub(crate) [libc::c_char; N]);
 

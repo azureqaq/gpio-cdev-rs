@@ -24,7 +24,7 @@ bitflags! {
 
 /// Infomation about a certain GPIO line.
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct GpioLineInfo {
     /// the local offset on this GPIO devices, fill this in
     /// when requesting the line infomation from the kernel.
@@ -49,7 +49,7 @@ pub enum GpioLineChangedType {
 
 /// Infomation about a change in status of a GPIO line.
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct GpioLineInfoChanged {
     /// update line infomation.
     pub(crate) info: GpioLineInfo,
