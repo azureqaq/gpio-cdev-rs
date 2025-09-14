@@ -1,4 +1,4 @@
-use std::os::fd::{AsRawFd, BorrowedFd};
+use std::os::fd::AsRawFd;
 
 use crate::{chip::Chip, ffi, line::LineInfo, Result};
 

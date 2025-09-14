@@ -13,7 +13,6 @@
 
 use std::{
     borrow::Cow,
-    ffi::CStr,
     fmt::Debug,
     fs::File,
     os::fd::AsRawFd,

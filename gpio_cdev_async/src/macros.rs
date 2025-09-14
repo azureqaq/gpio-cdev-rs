@@ -18,5 +18,4 @@ macro_rules! const_assert {
     };
 }
 
-pub(crate) use const_assert;
 pub(crate) use wrap_ioctl;
